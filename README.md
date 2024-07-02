@@ -7,8 +7,7 @@ To enter the development shell: `nix develop`
 
 ### SP1 stack
 
-Write program in Rust, using `sp1` to prove and their contract suite to verify on-chain.
+To build the ELF executable for your program and generate the proof, you will have to run outside the nix dev-shell.
+For contract developments, you can enter nix shell to use necessary tools.
 
-``` sh
-cargo run --bin prove --release
-```
+Follow [`./sp1/README.md`](./sp1/README.md) for concrete instructions.
