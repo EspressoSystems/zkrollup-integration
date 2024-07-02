@@ -2,5 +2,6 @@
 members = [
     "sp1/program",
     "sp1/script",
+    "sp1/utils",
 ]
 resolver = "2"

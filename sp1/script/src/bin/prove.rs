@@ -1,15 +1,14 @@
-//! An end-to-end example of using the SP1 SDK to generate a proof of a program that can be verified
-//! on-chain.
+//! Using the SP1 SDK to generate a proof of correct derivation from an espresso block.
 //!
 //! You can run this script using the following command:
 //! ```shell
-//! RUST_LOG=info cargo run --package fibonacci-script --bin prove --release
+//! RUST_LOG=info cargo run --package espresso-derivation-prover --bin prove --release
 //! ```
 
 use std::path::PathBuf;
 
-use alloy_sol_types::{sol, SolType};
 use clap::Parser;
+use espresso_derivation_utils::ns_table::NamespaceId;
 use serde::{Deserialize, Serialize};
 use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1VerifyingKey};
 
@@ -19,20 +18,16 @@ use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1Verify
 pub const FIBONACCI_ELF: &[u8] = include_bytes!("../../../program/elf/riscv32im-succinct-zkvm-elf");
 
 /// The arguments for the prove command.
+// TODO: fill in other details
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct ProveArgs {
-    #[clap(long, default_value = "20")]
-    n: u32,
+    #[clap(long, default_value = "0")]
+    ns_id: NamespaceId,
 
     #[clap(long, default_value = "false")]
     evm: bool,
 }
-
-/// The public values encoded as a tuple that can be easily deserialized inside Solidity.
-type PublicValuesTuple = sol! {
-    tuple(uint32, uint32, uint32)
-};
 
 fn main() {
     // Setup the logger.
@@ -49,9 +44,9 @@ fn main() {
 
     // Setup the inputs.;
     let mut stdin = SP1Stdin::new();
-    stdin.write(&args.n);
+    stdin.write(&args.ns_id);
 
-    println!("n: {}", args.n);
+    println!("Namespace ID: {:#x}", args.ns_id);
 
     if args.evm {
         // Generate the proof.
@@ -62,10 +57,9 @@ fn main() {
     } else {
         // Generate the proof.
         let proof = client.prove(&pk, stdin).expect("failed to generate proof");
-        let (_, _, fib_n) =
-            PublicValuesTuple::abi_decode(proof.public_values.as_slice(), false).unwrap();
+        let ns_id = u32::from_le_bytes(proof.public_values.as_slice().try_into().unwrap());
         println!("Successfully generated proof!");
-        println!("fib(n): {}", fib_n);
+        println!("Namespace ID: {:#x}", ns_id);
 
         // Verify the proof.
         client.verify(&proof, &vk).expect("failed to verify proof");
@@ -75,10 +69,7 @@ fn main() {
 /// A fixture that can be used to test the verification of SP1 zkVM proofs inside Solidity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct SP1FibonacciProofFixture {
-    a: u32,
-    b: u32,
-    n: u32,
+struct ProofFixture {
     vkey: String,
     public_values: String,
     proof: String,
@@ -86,15 +77,8 @@ struct SP1FibonacciProofFixture {
 
 /// Create a fixture for the given proof.
 fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
-    // Deserialize the public values.
-    let bytes = proof.public_values.as_slice();
-    let (n, a, b) = PublicValuesTuple::abi_decode(bytes, false).unwrap();
-
     // Create the testing fixture so we can test things end-to-end.
-    let fixture = SP1FibonacciProofFixture {
-        a,
-        b,
-        n,
+    let fixture = ProofFixture {
         vkey: vk.bytes32().to_string(),
         public_values: proof.public_values.bytes().to_string(),
         proof: proof.bytes().to_string(),
