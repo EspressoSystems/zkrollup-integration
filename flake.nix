@@ -75,7 +75,7 @@
             cargo-sort = {
               enable = true;
               description = "Ensure Cargo.toml are sorted";
-              entry = "cargo sort -w";
+              entry = "cargo sort sp1/program sp1/script";
               pass_filenames = false;
             };
             spell-check = {
