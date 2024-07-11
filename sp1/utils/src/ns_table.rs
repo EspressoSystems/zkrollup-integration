@@ -13,15 +13,6 @@ const NS_ID_BYTE_LEN: usize = 4;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NsTable(pub Vec<u8>);
 
-/// Type definition for namespace id.
-pub type NamespaceId = u32;
-
-impl AsRef<[u8]> for NsTable {
-    fn as_ref(&self) -> &[u8] {
-        &[]
-    }
-}
-
 impl NsTable {
     /// Number of entries in the namespace table.
     ///
@@ -63,5 +54,28 @@ impl NsTable {
             u32::from_le_bytes(self.0[pos - NS_OFFSET_BYTE_LEN..pos].try_into().unwrap())
         };
         (id, start, end)
+    }
+
+    /// Read from namespace table given a namespace ID.
+    ///
+    /// Return None if given ID is not present, or a tuple (start, end) specifying
+    /// its bytes range [start, end) in the payload.
+    pub fn scan_for_id(&self, id: u32) -> Option<(u32, u32)> {
+        let mut pos = NUM_NSS_BYTE_LEN;
+        let mut last_offset = 0u32;
+        for _ in 0..self.len() {
+            let cur_id = u32::from_le_bytes(self.0[pos..pos + NS_ID_BYTE_LEN].try_into().unwrap());
+            let cur_offset = u32::from_le_bytes(
+                self.0[pos + NS_ID_BYTE_LEN..pos + NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN]
+                    .try_into()
+                    .unwrap(),
+            );
+            if id == cur_id {
+                return Some((last_offset, cur_offset));
+            }
+            last_offset = cur_offset;
+            pos += NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN;
+        }
+        None
     }
 }
