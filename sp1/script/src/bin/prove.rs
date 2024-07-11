@@ -15,7 +15,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use espresso_derivation_utils::ns_table::NamespaceId;
+use espresso_derivation_utils::ns_table::NsTable;
 use serde::{Deserialize, Serialize};
 use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1VerifyingKey};
 
@@ -29,11 +29,32 @@ pub const ELF: &[u8] = include_bytes!("../../../program/elf/riscv32im-succinct-z
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct ProveArgs {
+    #[clap(long, default_value = "29")]
+    ns_id: u32,
+
+    #[clap(long, value_parser = parse_bytes, default_value = "010000001D0000000B000000")]
+    ns_table: NsTable,
+
     #[clap(long, default_value = "0")]
-    ns_id: NamespaceId,
+    ns_index: u32,
+
+    #[clap(long, default_value = "0")]
+    ns_range_start: u32,
+
+    #[clap(long, default_value = "11")]
+    ns_range_end: u32,
 
     #[clap(long, default_value = "false")]
     evm: bool,
+}
+
+fn parse_bytes(arg: &str) -> Result<NsTable, std::num::ParseIntError> {
+    Ok(NsTable(
+        (0..arg.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&arg[i..i + 2], 16))
+            .collect::<Result<Vec<_>, _>>()?,
+    ))
 }
 
 fn main() {
@@ -52,8 +73,15 @@ fn main() {
     // Setup the inputs.;
     let mut stdin = SP1Stdin::new();
     stdin.write(&args.ns_id);
+    stdin.write(&args.ns_table);
+    stdin.write(&args.ns_index);
+    stdin.write(&args.ns_range_start);
+    stdin.write(&args.ns_range_end);
 
-    println!("Namespace ID: {:#x}", args.ns_id);
+    println!(
+        "Index: {}, Namespace ID: {:#x}, range: ({}, {})",
+        args.ns_index, args.ns_id, args.ns_range_start, args.ns_range_end
+    );
 
     if args.evm {
         // Generate the proof.
@@ -64,9 +92,7 @@ fn main() {
     } else {
         // Generate the proof.
         let proof = client.prove(&pk, stdin).expect("failed to generate proof");
-        let ns_id = u32::from_le_bytes(proof.public_values.as_slice().try_into().unwrap());
-        println!("Successfully generated proof!");
-        println!("Namespace ID: {:#x}", ns_id);
+        println!("Public values: {:?}", proof.public_values.as_slice());
 
         // Verify the proof.
         client.verify(&proof, &vk).expect("failed to verify proof");
