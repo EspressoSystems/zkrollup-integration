@@ -1,3 +1,3 @@
 [workspace]
 resolver = "2"
-members = ["sp1/program", "sp1/script"]
+members = ["sp1/program", "sp1/script", "sp1/utils"]

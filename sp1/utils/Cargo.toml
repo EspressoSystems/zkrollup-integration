@@ -1,4 +1,3 @@
-[workspace]
 [package]
 name = "espresso-derivation-utils"
 version = "0.1.0"
