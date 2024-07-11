@@ -1,0 +1,84 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - release-*
+    tags:
+      # YYYYMMDD
+      - "20[0-9][0-9][0-1][0-9][0-3][0-9]*"
+  schedule:
+    - cron: "0 0 * * 1"
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sp1-program:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install just command runner
+        run: |
+          sudo snap install --edge --classic just
+          just --version
+
+      - uses: Swatinem/rust-cache@v2
+        name: Enable Rust Caching
+        with:
+          prefix-key: v2-rust
+
+      - name: Setup SP1 toolchain
+        shell: bash
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          ~/.config/.sp1/bin/sp1up
+          ~/.config/.sp1/bin/cargo-prove prove --version
+          echo "$HOME/.config/.sp1/bin" >> $GITHUB_PATH
+
+      - name: Build SP1 program
+        run: just sp1-build
+
+      - name: Generate and verify SP1 proof
+        run: just sp1-prove
+
+  sp1-contracts:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Nix
+        uses: cachix/install-nix-action@V27
+
+      - name: Enable Cachix
+        uses: cachix/cachix-action@v15
+        # If PR is from a non-collaborator (e. g. dependabot) the secrets are missing and the login to cachix fails.
+        continue-on-error: true
+        with:
+          name: espresso-systems-private
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          extraPullNames: nix-community
+          skipPush: ${{ github.actor == 'dependabot[bot]' }}
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: Swatinem/rust-cache@v2
+        name: Enable Rust Caching
+        with:
+          prefix-key: v2-rust
+
+      - name: Format check
+        run: nix develop --accept-flake-config -c pre-commit run forge-fmt --all-files --show-diff-on-failure
+
+      - name: Build and test all contracts
+        run: nix develop --accept-flake-config -c just sp1-test-contracts

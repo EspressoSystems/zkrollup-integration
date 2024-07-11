@@ -78,6 +78,13 @@
               entry = "cargo sort sp1/program sp1/script";
               pass_filenames = false;
             };
+            forge-fmt = {
+              enable = true;
+              description = "Enforce forge fmt";
+              entry = "forge fmt";
+              types_or = [ "solidity" ];
+              pass_filenames = false;
+            };
             spell-check = {
               enable = true;
               description = "Spell check";
