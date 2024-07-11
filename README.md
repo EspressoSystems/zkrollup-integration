@@ -10,4 +10,10 @@ To enter the development shell: `nix develop`
 To build the ELF executable for your program and generate the proof, you will have to run outside the nix dev-shell.
 For contract developments, you can enter nix shell to use necessary tools.
 
-Follow [`./sp1/README.md`](./sp1/README.md) for concrete instructions.
+```
+# this will first rebuild the program to elf, then generate plonky3 proof and verify it
+just sp1-prove
+
+# this will generate a proof for solidity, and creates fixture for contract verifier
+just sp1-prove --evm
+```
