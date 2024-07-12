@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 import {Fibonacci} from "../src/Fibonacci.sol";
-import {SP1VerifierGateway} from "@sp1-contracts/SP1VerifierGateway.sol";
+import {SP1Verifier} from "@sp1-contracts/v1.0.8-testnet/SP1Verifier.sol";
 
 struct SP1ProofFixtureJson {
     uint32 a;
@@ -32,14 +32,12 @@ contract FibonacciTest is Test {
     function setUp() public {
         SP1ProofFixtureJson memory fixture = loadFixture();
 
-        verifier = address(new SP1VerifierGateway(address(1)));
+        verifier = address(new SP1Verifier());
         fibonacci = new Fibonacci(verifier, fixture.vkey);
     }
 
-    function test_ValidFibonacciProof() public {
+    function test_ValidFibonacciProof() public view {
         SP1ProofFixtureJson memory fixture = loadFixture();
-
-        vm.mockCall(verifier, abi.encodeWithSelector(SP1VerifierGateway.verifyProof.selector), abi.encode(true));
 
         (uint32 n, uint32 a, uint32 b) = fibonacci.verifyFibonacciProof(fixture.proof, fixture.publicValues);
         assert(n == fixture.n);
