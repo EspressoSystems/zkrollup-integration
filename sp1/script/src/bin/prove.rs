@@ -17,8 +17,12 @@ use std::path::PathBuf;
 use clap::Parser;
 use committable::Committable;
 use espresso_derivation_utils::{
-    block::header::{BlockHeader, BlockMerkleTree},
+    block::{
+        header::{BlockHeader, BlockMerkleTree},
+        RollupCommitment,
+    },
     ns_table::NsTable,
+    PublicInputs,
 };
 use jf_merkle_tree::{AppendableMerkleTreeScheme, MerkleTreeScheme};
 use serde::{Deserialize, Serialize};
@@ -82,10 +86,13 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
 
     let ns_id = 29u32;
 
+    let rollup_txs_comm: RollupCommitment = Default::default();
+
     stdin.write(&block_merkle_tree.commitment());
     stdin.write(&header);
     stdin.write(&mt_proof);
     stdin.write(&ns_id);
+    stdin.write(&rollup_txs_comm);
 }
 
 fn main() {
@@ -114,7 +121,9 @@ fn main() {
     } else {
         // Generate the proof.
         let proof = client.prove(&pk, stdin).expect("failed to generate proof");
-        println!("Public values: {:?}", proof.public_values.as_slice());
+        let public_values: PublicInputs =
+            bincode::deserialize(proof.public_values.as_slice()).unwrap();
+        println!("Public values: {:?}", public_values);
 
         // Verify the proof.
         client.verify(&proof, &vk).expect("failed to verify proof");

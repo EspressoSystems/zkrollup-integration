@@ -1516,7 +1516,6 @@ dependencies = [
 name = "espresso-derivation"
 version = "0.1.0"
 dependencies = [
- "alloy-sol-types",
  "committable",
  "espresso-derivation-utils",
  "jf-merkle-tree",
@@ -1528,6 +1527,7 @@ name = "espresso-derivation-prover"
 version = "0.1.0"
 dependencies = [
  "alloy-sol-types",
+ "bincode",
  "clap",
  "committable",
  "espresso-derivation-utils",
