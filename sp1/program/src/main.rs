@@ -44,7 +44,6 @@ pub fn main() {
     // Assert that the header is the one committed in the block Merkle tree
     assert_eq!(&header.commit(), mt_proof.elem().unwrap());
 
-    // let header = mt_proof.elem().unwrap();
     let ns_id = sp1_zkvm::io::read::<u32>();
 
     let (ns_range_start, ns_range_end) = header
