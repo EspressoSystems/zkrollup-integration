@@ -1,5 +1,6 @@
 //! Definitions and utilities for namespace table of an espresso block.
 //! Most of contents are "unwrapped" from espresso-sequencer repo.
+use committable::{Commitment, Committable, RawCommitmentBuilder};
 use serde::{Deserialize, Serialize};
 
 /// Byte lengths for the different items that could appear in a namespace table.
@@ -77,5 +78,17 @@ impl NsTable {
             pos += NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN;
         }
         None
+    }
+}
+
+impl Committable for NsTable {
+    fn commit(&self) -> Commitment<Self> {
+        RawCommitmentBuilder::new(&Self::tag())
+            .var_size_bytes(&self.0)
+            .finalize()
+    }
+
+    fn tag() -> String {
+        "NSTABLE".into()
     }
 }

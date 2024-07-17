@@ -15,7 +15,12 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use espresso_derivation_utils::ns_table::NsTable;
+use committable::Committable;
+use espresso_derivation_utils::{
+    block::header::{BlockHeader, BlockMerkleTree},
+    ns_table::NsTable,
+};
+use jf_merkle_tree::{AppendableMerkleTreeScheme, MerkleTreeScheme};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1VerifyingKey};
 
@@ -29,11 +34,11 @@ pub const ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-e
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct ProveArgs {
-    #[clap(long, default_value = "29")]
-    ns_id: u32,
+    // #[clap(long, default_value = "29")]
+    // ns_id: u32,
 
-    #[clap(long, value_parser = parse_bytes, default_value = "010000001D0000000B000000")]
-    ns_table: NsTable,
+    // #[clap(long, value_parser = parse_bytes, default_value = "010000001D0000000B000000")]
+    // ns_table: NsTable,
 
     // #[clap(long, default_value = "0")]
     // ns_index: u32,
@@ -56,6 +61,33 @@ fn parse_bytes(arg: &str) -> Result<NsTable, std::num::ParseIntError> {
     ))
 }
 
+fn mock_inputs(stdin: &mut SP1Stdin) {
+    let mut block_merkle_tree = BlockMerkleTree::new(32);
+    let header = BlockHeader {
+        chain_config: Default::default(),
+        height: 10,
+        timestamp: 10,
+        l1_head: 10,
+        l1_finalized: None,
+        payload_commitment: Default::default(),
+        builder_commitment: [0u8; 32],
+        ns_table: parse_bytes("010000001D0000000B000000").unwrap(),
+        block_merkle_tree_root: block_merkle_tree.commitment(),
+        fee_merkle_tree_root: vec![0u8; 32],
+        fee_info: Default::default(),
+    };
+    block_merkle_tree.push(header.commit()).unwrap();
+
+    let (_, mt_proof) = block_merkle_tree.lookup(0).expect_ok().unwrap();
+
+    let ns_id = 29u32;
+
+    stdin.write(&block_merkle_tree.commitment());
+    stdin.write(&header);
+    stdin.write(&mt_proof);
+    stdin.write(&ns_id);
+}
+
 fn main() {
     // Setup the logger.
     sp1_sdk::utils::setup_logger();
@@ -71,10 +103,7 @@ fn main() {
 
     // Setup the inputs.;
     let mut stdin = SP1Stdin::new();
-    stdin.write(&args.ns_id);
-    stdin.write(&args.ns_table);
-
-    println!("Namespace ID: {:#X}", args.ns_id);
+    mock_inputs(&mut stdin);
 
     if args.evm {
         // Generate the proof.
