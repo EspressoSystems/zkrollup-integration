@@ -1,3 +1,18 @@
 [workspace]
 resolver = "2"
-members = ["sp1/program", "sp1/script"]
+members = ["sp1/program", "sp1/script", "sp1/utils"]
+
+[workspace.dependencies]
+ark-bn254 = "0.4"
+ark-serialize = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+committable = "0.2"
+either = { version = "1.13", features = ["serde"] }
+jf-merkle-tree = { version = "0.1", git = "https://github.com/EspressoSystems/jellyfish", tag = "0.4.5", features = [
+  "std",
+] }
+jf-vid = { version = "0.1", git = "https://github.com/EspressoSystems/jellyfish", tag = "0.4.5", features = [
+  "std",
+] }
+sha2 = "0.10"
+primitive-types = { version = "0.12", features = ["serde"] }
