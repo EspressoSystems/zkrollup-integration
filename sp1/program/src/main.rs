@@ -24,7 +24,11 @@ use espresso_derivation_utils::{
 };
 use jf_merkle_tree::{MerkleCommitment, MerkleTreeScheme};
 
+#[allow(unused_assignments)]
 pub fn main() {
+    // Indicates that whether all inputs are consistent
+    let mut consistency_check = true;
+
     // Block Merkle tree commitment in the light client state
     let block_merkle_tree_comm = sp1_zkvm::io::read::<BlockMerkleCommitment>();
 
@@ -35,23 +39,31 @@ pub fn main() {
     let mt_proof = sp1_zkvm::io::read::<BlockMerkleTreeProof>();
 
     // Assert that the membership proof is valid
-    assert_eq!(block_merkle_tree_comm.height() + 1, mt_proof.proof.len());
-    assert!(
-        BlockMerkleTree::verify(block_merkle_tree_comm.digest(), mt_proof.pos, &mt_proof)
-            .unwrap()
-            .is_ok()
-    );
+    if block_merkle_tree_comm.height() + 1 != mt_proof.proof.len()
+        || !BlockMerkleTree::verify(block_merkle_tree_comm.digest(), mt_proof.pos, &mt_proof)
+            .is_ok_and(|result| result.is_ok())
+    {
+        std::println!("Incorrect membership proof for block Merkle tree");
+        consistency_check = false;
+    }
     // Assert that the header is the one committed in the block Merkle tree
-    assert_eq!(&header.commit(), mt_proof.elem().unwrap());
+    if !mt_proof.elem().is_some_and(|elem| elem == &header.commit()) {
+        std::println!("Membership proof is not consistent with the given block header.");
+        consistency_check = false;
+    }
 
     let ns_id = sp1_zkvm::io::read::<u32>();
 
-    let (ns_range_start, ns_range_end) = header
-        .ns_table
-        .scan_for_id(ns_id)
-        .expect("Namespace ID not found.");
-
-    std::println!("Byte range: ({}, {})", ns_range_start, ns_range_end);
+    match header.ns_table.scan_for_id(ns_id) {
+        None => {
+            std::println!("Namespace ID not found in the block");
+            consistency_check = false;
+        }
+        Some((ns_range_start, ns_range_end)) => {
+            std::println!("Byte range: ({}, {})", ns_range_start, ns_range_end);
+            todo!()
+        }
+    }
 
     // Rollup transaction commitment
     let rollup_txs_comm = sp1_zkvm::io::read::<RollupCommitment>();
@@ -63,6 +75,7 @@ pub fn main() {
         block_height: header.height,
         ns_id,
         rollup_txs_comm,
+        consistency_check,
     };
     sp1_zkvm::io::commit(&public_inputs);
 }
