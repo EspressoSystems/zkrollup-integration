@@ -19,12 +19,14 @@ use committable::Committable;
 use espresso_derivation_utils::{
     block::{
         header::{BlockHeader, BlockMerkleTree},
-        RollupCommitment,
+        payload::{rollup_commit, vid_scheme, NsProof, Payload, VidParam},
     },
     ns_table::NsTable,
     PublicInputs,
 };
 use jf_merkle_tree::{AppendableMerkleTreeScheme, MerkleTreeScheme};
+use jf_pcs::prelude::UnivariateUniversalParams;
+use jf_vid::{payload_prover::PayloadProver, VidScheme};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1VerifyingKey};
 
@@ -67,13 +69,29 @@ fn parse_bytes(arg: &str) -> Result<NsTable, std::num::ParseIntError> {
 
 fn mock_inputs(stdin: &mut SP1Stdin) {
     let mut block_merkle_tree = BlockMerkleTree::new(32);
+    let num_storage_nodes = 10;
+
+    let ns_range = 0..11;
+
+    let payload = Payload(vec![0u8; 20]);
+    let ns_payload = Payload(vec![0u8; 11]);
+
+    let vid_param = load_srs();
+    let mut vid = vid_scheme(num_storage_nodes, &vid_param);
+
+    let vid_disperse = vid.disperse(&payload.0).unwrap();
+    let vid_common = vid_disperse.common;
+    let vid_commitment = vid_disperse.commit;
+
+    let ns_proof: NsProof = vid.payload_proof(payload.0, ns_range).unwrap();
+
     let header = BlockHeader {
         chain_config: Default::default(),
         height: 10,
         timestamp: 10,
         l1_head: 10,
         l1_finalized: None,
-        payload_commitment: Default::default(),
+        payload_commitment: vid_commitment,
         builder_commitment: [0u8; 32],
         ns_table: parse_bytes("010000001D0000000B000000").unwrap(),
         block_merkle_tree_root: block_merkle_tree.commitment(),
@@ -86,12 +104,16 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
 
     let ns_id = 29u32;
 
-    let rollup_txs_comm: RollupCommitment = Default::default();
+    let rollup_txs_comm = rollup_commit(&ns_payload);
 
     stdin.write(&block_merkle_tree.commitment());
     stdin.write(&header);
     stdin.write(&mt_proof);
     stdin.write(&ns_id);
+    stdin.write(&ns_payload);
+    stdin.write(&vid_param);
+    stdin.write(&vid_common);
+    stdin.write(&ns_proof);
     stdin.write(&rollup_txs_comm);
 }
 
@@ -172,4 +194,16 @@ fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
         serde_json::to_string_pretty(&fixture).unwrap(),
     )
     .expect("failed to write fixture");
+}
+
+fn load_srs() -> VidParam {
+    // low degree for demo only
+    pub const SRS_DEGREE: usize = 32usize;
+    let srs = ark_srs::kzg10::aztec20::setup(SRS_DEGREE).expect("Aztec SRS failed to load");
+    VidParam(UnivariateUniversalParams {
+        powers_of_g: srs.powers_of_g,
+        h: srs.h,
+        beta_h: srs.beta_h,
+        powers_of_h: vec![srs.h, srs.beta_h],
+    })
 }

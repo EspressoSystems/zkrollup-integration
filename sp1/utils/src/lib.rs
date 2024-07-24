@@ -3,7 +3,8 @@
 // `HotShot` requires a minimum rust version of [1.76.0](https://github.com/EspressoSystems/HotShot/blob/4713af7704f88f38a8a69b708acd4677f76d8ff1/Cargo.toml#L5).
 // This is incompatible with the current sp1 rust toolchain 1.75.0.
 
-use block::{header::BlockMerkleCommitment, RollupCommitment};
+use block::{header::BlockMerkleCommitment, payload::VidCommon, RollupCommitment};
+use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 
 pub mod block;
@@ -17,4 +18,6 @@ pub struct PublicInputs {
     pub ns_id: u32,
     pub rollup_txs_comm: RollupCommitment,
     pub consistency_check: bool,
+    pub vid_param_hash: H256,
+    pub vid_common: VidCommon,
 }
