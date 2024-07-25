@@ -12,8 +12,6 @@
 //  - Scan through the namespace table for the index of this rollup's namespace ID.
 //  - Feed these input to the program to generate a proof.
 
-use std::path::PathBuf;
-
 use clap::Parser;
 use committable::Committable;
 use espresso_derivation_utils::{
@@ -29,6 +27,7 @@ use jf_pcs::prelude::UnivariateUniversalParams;
 use jf_vid::{payload_prover::PayloadProver, VidScheme};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1VerifyingKey};
+use std::path::PathBuf;
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
 ///
@@ -198,7 +197,7 @@ fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
 
 fn load_srs() -> VidParam {
     // low degree for demo only
-    pub const SRS_DEGREE: usize = 32usize;
+    pub const SRS_DEGREE: usize = 1024usize;
     let srs = ark_srs::kzg10::aztec20::setup(SRS_DEGREE).expect("Aztec SRS failed to load");
     VidParam(UnivariateUniversalParams {
         powers_of_g: srs.powers_of_g,
