@@ -14,5 +14,8 @@ jf-merkle-tree = { version = "0.1", git = "https://github.com/EspressoSystems/je
 jf-vid = { version = "0.1", git = "https://github.com/EspressoSystems/jellyfish", tag = "0.4.5", features = [
   "std",
 ] }
+jf-pcs = { version = "0.1", git = "https://github.com/EspressoSystems/jellyfish", tag = "0.4.5", features = [
+  "std",
+] }
 sha2 = "0.10"
 primitive-types = { version = "0.12", features = ["serde"] }

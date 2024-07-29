@@ -8,3 +8,4 @@ committable = { workspace = true }
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.8-testnet" }
 espresso-derivation-utils = { path = "../utils" }
 jf-merkle-tree = { workspace = true }
+jf-vid = { workspace = true }
