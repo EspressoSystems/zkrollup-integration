@@ -12,7 +12,10 @@ const NS_ID_BYTE_LEN: usize = 4;
 
 /// Type definition for a namespace table.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct NsTable(pub Vec<u8>);
+pub struct NsTable {
+    #[serde(with = "base64_bytes")]
+    pub bytes: Vec<u8>,
+}
 
 impl NsTable {
     /// Number of entries in the namespace table.
@@ -21,7 +24,7 @@ impl NsTable {
     /// table, ignoring what's declared in the table header.
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> u32 {
-        u32::from_le_bytes(self.0[..NUM_NSS_BYTE_LEN].try_into().unwrap())
+        u32::from_le_bytes(self.bytes[..NUM_NSS_BYTE_LEN].try_into().unwrap())
     }
 
     /// Read from namespace table given an index.
@@ -43,16 +46,20 @@ impl NsTable {
     /// range [start, end) in the payload.
     pub fn read_unchecked(&self, index: u32) -> (u32, u32, u32) {
         let pos = index as usize * (NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN) + NUM_NSS_BYTE_LEN;
-        let id = u32::from_le_bytes(self.0[pos..pos + NS_ID_BYTE_LEN].try_into().unwrap());
+        let id = u32::from_le_bytes(self.bytes[pos..pos + NS_ID_BYTE_LEN].try_into().unwrap());
         let end = u32::from_le_bytes(
-            self.0[pos + NS_ID_BYTE_LEN..pos + NS_OFFSET_BYTE_LEN + NS_ID_BYTE_LEN]
+            self.bytes[pos + NS_ID_BYTE_LEN..pos + NS_OFFSET_BYTE_LEN + NS_ID_BYTE_LEN]
                 .try_into()
                 .unwrap(),
         );
         let start = if index == 0 {
             0u32
         } else {
-            u32::from_le_bytes(self.0[pos - NS_OFFSET_BYTE_LEN..pos].try_into().unwrap())
+            u32::from_le_bytes(
+                self.bytes[pos - NS_OFFSET_BYTE_LEN..pos]
+                    .try_into()
+                    .unwrap(),
+            )
         };
         (id, start, end)
     }
@@ -65,9 +72,10 @@ impl NsTable {
         let mut pos = NUM_NSS_BYTE_LEN;
         let mut last_offset = 0u32;
         for _ in 0..self.len() {
-            let cur_id = u32::from_le_bytes(self.0[pos..pos + NS_ID_BYTE_LEN].try_into().unwrap());
+            let cur_id =
+                u32::from_le_bytes(self.bytes[pos..pos + NS_ID_BYTE_LEN].try_into().unwrap());
             let cur_offset = u32::from_le_bytes(
-                self.0[pos + NS_ID_BYTE_LEN..pos + NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN]
+                self.bytes[pos + NS_ID_BYTE_LEN..pos + NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN]
                     .try_into()
                     .unwrap(),
             );
@@ -84,7 +92,7 @@ impl NsTable {
 impl Committable for NsTable {
     fn commit(&self) -> Commitment<Self> {
         RawCommitmentBuilder::new(&Self::tag())
-            .var_size_bytes(&self.0)
+            .var_size_bytes(&self.bytes)
             .finalize()
     }
 

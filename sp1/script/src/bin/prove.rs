@@ -39,41 +39,33 @@ pub const ELF: &[u8] = include_bytes!("../../../../elf/riscv32im-succinct-zkvm-e
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct ProveArgs {
-    // #[clap(long, default_value = "29")]
-    // ns_id: u32,
-
-    // #[clap(long, value_parser = parse_bytes, default_value = "010000001D0000000B000000")]
-    // ns_table: NsTable,
-
-    // #[clap(long, default_value = "0")]
-    // ns_index: u32,
-
-    // #[clap(long, default_value = "0")]
-    // ns_range_start: u32,
-
-    // #[clap(long, default_value = "11")]
-    // ns_range_end: u32,
     #[clap(long, default_value = "false")]
     evm: bool,
 }
 
+#[allow(dead_code)]
 fn parse_bytes(arg: &str) -> Result<NsTable, std::num::ParseIntError> {
-    Ok(NsTable(
-        (0..arg.len())
+    Ok(NsTable {
+        bytes: (0..arg.len())
             .step_by(2)
             .map(|i| u8::from_str_radix(&arg[i..i + 2], 16))
             .collect::<Result<Vec<_>, _>>()?,
-    ))
+    })
 }
 
 fn mock_inputs(stdin: &mut SP1Stdin) {
     let mut block_merkle_tree = BlockMerkleTree::new(32);
     let num_storage_nodes = 10;
 
+    // Mocking namespace ID
+    let ns_id = 29u32;
+
+    // 11 bytes for current namespace
     let ns_range = 0..11;
 
-    let payload = Payload(vec![0u8; 20]);
-    let ns_payload = Payload(vec![0u8; 11]);
+    // Mocking input for a small payload
+    let payload = Payload(vec![1u8; 20]);
+    let ns_payload = Payload(vec![1u8; 11]);
 
     let vid_param = load_srs();
     let mut vid = vid_scheme(num_storage_nodes, &vid_param);
@@ -84,24 +76,52 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
 
     let ns_proof: NsProof = vid.payload_proof(payload.0, ns_range).unwrap();
 
-    let header = BlockHeader {
-        chain_config: Default::default(),
-        height: 10,
-        timestamp: 10,
-        l1_head: 10,
-        l1_finalized: None,
-        payload_commitment: vid_commitment,
-        builder_commitment: [0u8; 32],
-        ns_table: parse_bytes("010000001D0000000B000000").unwrap(),
-        block_merkle_tree_root: block_merkle_tree.commitment(),
-        fee_merkle_tree_root: vec![0u8; 32],
-        fee_info: Default::default(),
-    };
+    // This is a tweak from an actual block header in Espresso's staging testnet
+    // Namespace table is hardcoded.
+    let mut header: BlockHeader = serde_json::from_str(
+        r#"{
+            "chain_config": {
+                "chain_config": {
+                    "Left": {
+                        "chain_id": "888888888",
+                        "max_block_size": "30000000",
+                        "base_fee": "0",
+                        "fee_contract": null,
+                        "fee_recipient": "0x0000000000000000000000000000000000000000"
+                    }
+                }
+            },
+            "height": 69781,
+            "timestamp": 1720789795,
+            "l1_head": 5113,
+            "l1_finalized": {
+                "number": 5088,
+                "timestamp": "0x669129ec",
+                "hash": "0xfc4249b13292d2617cc0dec8b0a9a666491d5fecdfe536c929207847364b2b60"
+            },
+            "payload_commitment": "HASH~KpvHX4MuDuZKk10QJctEoUj-fump6NIAO8fJ048RwNJo",
+            "builder_commitment": "BUILDER_COMMITMENT~tEvs0rxqOiMCvfe2R0omNNaphSlUiEDrb2q0IZpRcgA_",
+            "ns_table": {
+                "bytes": "AQAAAB0AAAALAAAA"
+            },
+            "block_merkle_tree_root": "MERKLE_COMM~02gWBSt2tcz9XfOOO6xEVicluWIIP95BW8I11f2graggAAAAAAAAAJUQAQAAAAAAUQ",
+            "fee_merkle_tree_root": "MERKLE_COMM~yB4_Aqa35_PoskgTpcCR1oVLh6BUdLHIs7erHKWi-usUAAAAAAAAAAEAAAAAAAAAJg",
+            "fee_info": {
+                "account": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+                "amount": "0"
+            },
+            "builder_signature": {
+                "r": "0x6291b473fdac85b9ce7b40b530ea4173ac6e71fd29acffc3cbc97ae637d4404d",
+                "s": "0x3178fe07d5071df7a7ce4106e6e1e3727aa6edc458db03d1774948bdec32eac6",
+                "v": 28
+            }
+         }"#,
+    ).unwrap();
+    header.payload_commitment = vid_commitment;
+
     block_merkle_tree.push(header.commit()).unwrap();
 
     let (_, mt_proof) = block_merkle_tree.lookup(0).expect_ok().unwrap();
-
-    let ns_id = 29u32;
 
     let rollup_txs_comm = rollup_commit(&ns_payload);
 
@@ -197,7 +217,7 @@ fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
 
 fn load_srs() -> VidParam {
     // low degree for demo only
-    pub const SRS_DEGREE: usize = 1024usize;
+    pub const SRS_DEGREE: usize = 8usize;
     let srs = ark_srs::kzg10::aztec20::setup(SRS_DEGREE).expect("Aztec SRS failed to load");
     VidParam(UnivariateUniversalParams {
         powers_of_g: srs.powers_of_g,
