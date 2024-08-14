@@ -19,6 +19,8 @@ concurrency:
 
 jobs:
   sp1-program:
+    strategy:
+      fail-fast: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -36,13 +38,11 @@ jobs:
         with:
           prefix-key: v2-rust
 
-      - name: Setup SP1 toolchain
-        shell: bash
+      - name: Install SP1 toolchain
         run: |
           curl -L https://sp1.succinct.xyz | bash
-          ~/.config/.sp1/bin/sp1up
-          ~/.config/.sp1/bin/cargo-prove prove --version
-          echo "$HOME/.config/.sp1/bin" >> $GITHUB_PATH
+          ~/.sp1/bin/sp1up
+          ~/.sp1/bin/cargo-prove prove --version
 
       - name: Build SP1 program
         run: just sp1-build
