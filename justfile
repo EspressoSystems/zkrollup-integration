@@ -6,7 +6,7 @@ default:
 @sp1-build:
     echo "Rebuilding SP1 program ..."
     mkdir -p sp1/program/elf
-    cd sp1/program && cargo-prove prove build --verbose
+    cd sp1/program && cargo-prove prove build
     mv elf/riscv32im-succinct-zkvm-elf sp1/program/elf/fib-riscv32im-succinct-zkvm-elf && rm -rf elf/
     echo "... done"
 
