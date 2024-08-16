@@ -52,7 +52,7 @@ pub struct BlockHeader {
     pub block_merkle_tree_root: BlockMerkleCommitment,
     /// Serialized root Commitment of `FeeMerkleTree`
     pub fee_merkle_tree_root: FeeMerkleCommitment,
-    /// Fee infomation of this block
+    /// Fee information of this block
     pub fee_info: FeeInfo,
     // Builder signature is not formally part of the header and not committed.
 }

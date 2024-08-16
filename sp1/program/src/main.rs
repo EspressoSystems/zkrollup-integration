@@ -82,7 +82,7 @@ pub fn main() {
         }
         Some((ns_range_start, ns_range_end)) => {
             std::println!("Byte range: ({}, {})", ns_range_start, ns_range_end);
-            // Calculate the rollup transaction commmitment
+            // Calculate the rollup transaction commitment
             if rollup_commit(&ns_payload) != rollup_txs_comm {
                 std::println!("Rollup commitment mismatch.");
                 consistency_check = false;
