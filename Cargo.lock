@@ -1635,7 +1635,6 @@ dependencies = [
  "espresso-derivation-utils",
  "jf-merkle-tree",
  "jf-vid",
- "serde",
  "sp1-zkvm",
 ]
 
