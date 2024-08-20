@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 committable = { workspace = true }
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.8-testnet" }
+serde = { workspace = true }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.1.1" }
 espresso-derivation-utils = { path = "../utils" }
 jf-merkle-tree = { workspace = true }
 jf-vid = { workspace = true }
