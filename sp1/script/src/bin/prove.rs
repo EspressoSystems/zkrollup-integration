@@ -26,7 +26,7 @@ use jf_merkle_tree::{AppendableMerkleTreeScheme, MerkleTreeScheme};
 use jf_pcs::prelude::UnivariateUniversalParams;
 use jf_vid::{payload_prover::PayloadProver, VidScheme};
 use serde::{Deserialize, Serialize};
-use sp1_sdk::{HashableKey, ProverClient, SP1PlonkBn254Proof, SP1Stdin, SP1VerifyingKey};
+use sp1_sdk::{HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey};
 use std::path::PathBuf;
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
@@ -39,6 +39,9 @@ pub const ELF: &[u8] = include_bytes!("../../../program/elf/riscv32im-succinct-z
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct ProveArgs {
+    #[clap(short, long, default_value = "false")]
+    bench: bool,
+
     #[clap(long, default_value = "false")]
     evm: bool,
 }
@@ -153,15 +156,29 @@ fn main() {
     let mut stdin = SP1Stdin::new();
     mock_inputs(&mut stdin);
 
-    if args.evm {
+    if args.bench {
+        // Execute the program
+        let (public_values, report) = client
+            .execute(ELF, stdin)
+            .run()
+            .expect("failed to generate proof");
+        let public_values: PublicInputs = bincode::deserialize(public_values.as_slice()).unwrap();
+        println!("Public values: {:?}", public_values);
+        println!("{}", report);
+    } else if args.evm {
         // Generate the proof.
         let proof = client
-            .prove_plonk(&pk, stdin)
+            .prove(&pk, stdin)
+            .plonk()
+            .run()
             .expect("failed to generate proof");
         create_plonk_fixture(&proof, &vk);
     } else {
         // Generate the proof.
-        let proof = client.prove(&pk, stdin).expect("failed to generate proof");
+        let proof = client
+            .prove(&pk, stdin)
+            .run()
+            .expect("failed to generate proof");
         let public_values: PublicInputs =
             bincode::deserialize(proof.public_values.as_slice()).unwrap();
         println!("Public values: {:?}", public_values);
@@ -181,12 +198,12 @@ struct ProofFixture {
 }
 
 /// Create a fixture for the given proof.
-fn create_plonk_fixture(proof: &SP1PlonkBn254Proof, vk: &SP1VerifyingKey) {
+fn create_plonk_fixture(proof: &SP1ProofWithPublicValues, vk: &SP1VerifyingKey) {
     // Create the testing fixture so we can test things end-to-end.
     let fixture = ProofFixture {
         vkey: vk.bytes32().to_string(),
-        public_values: proof.public_values.bytes().to_string(),
-        proof: proof.bytes().to_string(),
+        public_values: proof.public_values.raw(),
+        proof: proof.raw(),
     };
 
     // The verification key is used to verify that the proof corresponds to the execution of the

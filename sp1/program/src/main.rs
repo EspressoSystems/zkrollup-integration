@@ -102,6 +102,8 @@ pub fn main() {
                     &ns_proof,
                 )
                 .is_ok_and(|result| result.is_ok())
+                || <Vid as VidScheme>::is_consistent(&header.payload_commitment, &vid_common)
+                    .is_err()
             {
                 std::println!("Failed namespace proof.");
                 consistency_check = false;
