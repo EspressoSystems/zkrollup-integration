@@ -8,7 +8,7 @@ use ark_serialize::{
 use committable::{Commitment, Committable, RawCommitmentBuilder};
 use either::Either;
 use jf_merkle_tree::{
-    prelude::{LightWeightSHA3MerkleTree, Sha3Digest, Sha3Node, UniversalMerkleTree},
+    prelude::{SHA3MerkleTree, Sha3Digest, Sha3Node, UniversalMerkleTree},
     MerkleTreeScheme, ToTraversalPath,
 };
 use primitive_types::{H160, H256, U256};
@@ -18,7 +18,7 @@ use std::io::Read;
 use tagged_base64::tagged;
 
 /// Types for block Merkle tree
-pub type BlockMerkleTree = LightWeightSHA3MerkleTree<Commitment<BlockHeader>>;
+pub type BlockMerkleTree = SHA3MerkleTree<Commitment<BlockHeader>>;
 pub type BlockMerkleTreeProof = <BlockMerkleTree as MerkleTreeScheme>::MembershipProof;
 pub type BlockMerkleCommitment = <BlockMerkleTree as MerkleTreeScheme>::Commitment;
 

@@ -87,6 +87,20 @@ impl NsTable {
         }
         None
     }
+
+    pub fn mock_ns_table(entries: &[(u32, u32)]) -> Self {
+        let num_entries = entries.len();
+        let mut bytes =
+            vec![0u8; NUM_NSS_BYTE_LEN + num_entries * (NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN)];
+        bytes[0..NUM_NSS_BYTE_LEN].copy_from_slice(&(num_entries as u32).to_le_bytes());
+        entries.iter().enumerate().for_each(|(i, (id, offset))| {
+            let pos = i * (NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN) + NUM_NSS_BYTE_LEN;
+            bytes[pos..pos + NS_ID_BYTE_LEN].copy_from_slice(&id.to_le_bytes());
+            bytes[pos + NS_ID_BYTE_LEN..pos + NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN]
+                .copy_from_slice(&offset.to_le_bytes());
+        });
+        Self { bytes }
+    }
 }
 
 impl Committable for NsTable {
