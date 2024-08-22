@@ -16,6 +16,13 @@ default:
     RUST_LOG=info cargo run --bin sp1-prove --release -- {{args}}
     echo "... done"
 
+# Bench the SP1 prover
+@sp1-bench *args: sp1-build
+    echo "Proving & Verifying SP1 program ..."
+    RUST_LOG=info cargo run --bin sp1-prove --release -- --bench {{args}}
+    echo "... done"
+
+# Test SP1 contracts
 @sp1-test-contracts:
     echo "Testing SP1 contracts"
     cd sp1/contracts && forge test -v
