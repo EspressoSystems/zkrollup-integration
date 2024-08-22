@@ -24,10 +24,11 @@ jobs:
           prefix-key: v2-rust
 
       - name: Install SP1 toolchain
+        shell: bash
         run: |
           curl -L https://sp1.succinct.xyz | bash
           ~/.sp1/bin/sp1up
-          echo "$HOME/.sp1/bin" >> $GITHUB_PATH
+          echo 'export PATH="$HOME/.sp1/bin:$PATH"' >> $BASH_ENV
 
       - name: Check SP1 toolchain
         run: cargo-prove prove --version
