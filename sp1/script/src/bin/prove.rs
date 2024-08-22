@@ -5,13 +5,6 @@
 //! RUST_LOG=info cargo run --package espresso-derivation-prover --bin prove --release
 //! ```
 
-// TODO: this crate should take inputs of an espresso block, block header, and other
-// information from espresso light client or query service, extract public and private
-// inputs for derivation pipeline, and generate need proofs. (Incomplete) workflow:
-//  - Program input: espresso block, block header, etc.
-//  - Scan through the namespace table for the index of this rollup's namespace ID.
-//  - Feed these input to the program to generate a proof.
-
 use clap::Parser;
 use committable::Committable;
 use espresso_derivation_utils::{
@@ -56,7 +49,6 @@ fn mock_block<R: RngCore>(
     rng: &mut R,
 ) -> (BlockHeader, VidCommon, NsProof) {
     // This is a tweak from an actual block header in Espresso's staging testnet
-    // Namespace table is hardcoded.
     let mut header: BlockHeader = serde_json::from_str(
         r#"{
             "chain_config": {
