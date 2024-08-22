@@ -130,6 +130,8 @@ fn mock_block<R: RngCore>(
 fn mock_inputs(stdin: &mut SP1Stdin) -> RollupCommitment {
     let mut rng = rand::thread_rng();
 
+    let ns_id = rng.next_u32();
+
     let mut block_merkle_tree = BlockMerkleTree::new(32);
 
     let num_blocks = rng.gen_range(2..5);
@@ -146,8 +148,6 @@ fn mock_inputs(stdin: &mut SP1Stdin) -> RollupCommitment {
         let ns_payload_len = rng.gen_range(5..10);
         let mut block_ns_payload = vec![0u8; ns_payload_len];
 
-        let ns_id = rng.next_u32();
-
         let (header, vid_common, ns_proof) =
             mock_block(i, ns_id, &block_ns_payload, &mut vid, &mut rng);
 
@@ -160,7 +160,6 @@ fn mock_inputs(stdin: &mut SP1Stdin) -> RollupCommitment {
             BlockDerivationProof {
                 bmt_proof,
                 block_header: header,
-                ns_id,
                 vid_common,
                 ns_proof,
             },
@@ -173,6 +172,7 @@ fn mock_inputs(stdin: &mut SP1Stdin) -> RollupCommitment {
     }
     let derivation_proof = EspressoDerivationProof {
         vid_param,
+        ns_id,
         bmt_commitment: block_merkle_tree.commitment(),
         block_proofs,
     };

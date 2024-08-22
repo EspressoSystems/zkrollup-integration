@@ -38,6 +38,7 @@ fn verify_espresso_derivation(payload: &[u8], proof: &EspressoDerivationProof) -
             && verify_block_derivation_proof(
                 &payload[range.start..range.end],
                 &proof.vid_param,
+                proof.ns_id,
                 &proof.bmt_commitment,
                 block_proof,
             );
@@ -49,6 +50,7 @@ fn verify_espresso_derivation(payload: &[u8], proof: &EspressoDerivationProof) -
 fn verify_block_derivation_proof(
     payload_slice: &[u8],
     vid_param: &VidParam,
+    ns_id: u32,
     bmt_commitment: &BlockMerkleCommitment,
     proof: &BlockDerivationProof,
 ) -> bool {
@@ -74,7 +76,7 @@ fn verify_block_derivation_proof(
         return false;
     }
 
-    match proof.block_header.ns_table.scan_for_id(proof.ns_id) {
+    match proof.block_header.ns_table.scan_for_id(ns_id) {
         None => {
             std::println!("Namespace ID not found in the block.");
             false
