@@ -50,9 +50,6 @@ jobs:
       - name: Build SP1 program
         run: just sp1-build
 
-      - name: Generate and verify SP1 proof
-        run: just sp1-prove
-
   sp1-contracts:
     timeout-minutes: 10
     runs-on: ubuntu-latest

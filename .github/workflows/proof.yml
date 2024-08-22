@@ -1,0 +1,39 @@
+name: Proof Generation
+
+# only manually trigger since it's memory intensive and incur CI bill
+on:
+  workflow_dispatch:
+
+jobs:
+  sp1-proof-gen:
+    runs-on: buildjet-4vcpu-ubuntu-2204
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install just command runner
+        run: |
+          sudo snap install --edge --classic just
+          just --version
+
+      - uses: Swatinem/rust-cache@v2
+        name: Enable Rust Caching
+        with:
+          prefix-key: v2-rust
+
+      - name: Install SP1 toolchain
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          ~/.sp1/bin/sp1up
+          echo "$HOME/.sp1/bin" >> $GITHUB_PATH
+
+      - name: Check SP1 toolchain
+        run: cargo-prove prove --version
+
+      - name: Generate and verify SP1 proof
+        run: just sp1-prove
+
+      - name: Bench report number of instructions
+        run: just sp1-bench
