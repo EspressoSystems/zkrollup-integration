@@ -59,7 +59,7 @@ pub struct EspressoDerivationCommit {
     /// Block Merkle tree commitment. Block MT contains information about all historical blocks up to some block height.
     pub bmt_commitment: BlockMerkleCommitment,
     /// List of (range, block_height). Specifies a block which each slice of payload is from.
-    pub blocks: Vec<(Range<usize>, u64)>,
+    pub blocks_info: Vec<(Range<usize>, u64)>,
 }
 
 impl From<EspressoDerivationProof> for EspressoDerivationCommit {
@@ -68,7 +68,7 @@ impl From<EspressoDerivationProof> for EspressoDerivationCommit {
             vid_param_hash: compute_vid_param_hash(&proof.vid_param),
             ns_id: proof.ns_id,
             bmt_commitment: proof.bmt_commitment,
-            blocks: proof
+            blocks_info: proof
                 .block_proofs
                 .into_iter()
                 .map(|(range, proof)| (range, proof.block_header.height))

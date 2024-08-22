@@ -21,54 +21,47 @@ Terminology wise:
     - `BlockPayload`: the actual payload that contains the raw tx data
         - instead of full block replication at each node, we use Verifiable Information Dispersal (VID) schemes where each replica stores a chunk. 
             - our concrete instantiation of VID relies on KZG polynomial commitment, thus requires _structured reference string_ (SRS) from a trusted setup
-        - all replicas unequivocally refer to the payload by a `VidCommitment`, a cryptographic commitment to the entire payload sent to every replica alongside their designated chunk
+        - all replicas unequivocally refer to the payload by a `PayloadCommitment`, a cryptographic commitment to the entire payload sent to every replica alongside their designated chunk
     - `BlockHeader`: the summarized new consensus state and chain metadata (for consensus nodes)
         - `BlockCommitment`: a short cryptographic commitment to the `BlockHeader`
-        - `BlockMerkleCommitment`: the root of `BlockMerkleTree` that accumulates all block commitments, enabling efficient historical block header lookup via `BlockMerkleTreeProof`
-        - `VidCommitment` is a part of of `BlockHeader`
+        - `BlockMerkleCommitment`: the root of `BlockMerkleTree` that accumulates all block commitments up to the current `BlockHeight`, enabling efficient historical block header lookup via `BlockMerkleTreeProof`
+        - `PayloadCommitment` is a part of `BlockHeader`
+        - `NsTable` described below is a part of `BlockHeader`
+- each rollup occupies a _namespace_ (distinguished by a unique namespace ID) in a block
+    - `NsTable` is the compact encoding of a _namespace table_ mapping namespace id to their range in `BlockPayload`
+    - `NsProof` is a _namespace proof_, attesting that some subset of bytes is the complete range of data designated to a particular namespace in a `BlockPayload` identified by its `PayloadCommitment` given a `NsTable`
 - a _light client_ is an agent that can verify the latest finalized _consensus state_ without running a full node
     - an off-chain light client usually receive the block header and the quorum certificate (QC)
     - an on-chain light client stores a pruned `LightClientState`, a strict subset of fields in `BlockHeader`, verified through _light client proof_ (the simplest form is using the QC from consensus, but we use a more EVM and SNARK-friendly light client protocol).
-- each rollup occupies a _namespace_ (distinguished by a unique namespace ID) in a block
-    - `NsTable` is the compact encoding of a _namespace table_ mapping namespace id to their offset and range in `BlockPayload`
-    - `NsProof` is a _namespace proof_, attesting that some subset of bytes is the complete range of data designated to a particular namespace in a `BlockPayload` identified by its `VidCommitment` given a `NsTable`
 
 ## Circuit Spec
 
-Assume we are proving a batch of `n` Espresso blocks.
+Generally speaking, we are proving that a list of rollup's transactions are correctly derived Espresso blocks finalized by the consensus.
 
 **Public Inputs**
-- `blk_cm_root_old: BlockMerkleCommitment`: root of the old block commitment tree
-- `blk_cm_root_new: BlockMerkleCommitment`: root of the new block commitment tree
-- `ns_txs_hash: ?`: commitment to all the txs for a namespace (type depends on the commitment scheme, e.g. Sha256 results in `[u8; 32]`) 
-    - this commitment/hash is computed by the rollup VM prover and the concrete algorithm is usually different for different rollups
-    - other public inputs to the "VM proof" (e.g. `prevStateRoot`, `newStateRoot`, `Withdraw/ExitRoot`) are skipped here since our circuit won't use them
+- `rollup_txs_commit: [u8; 32]`: Sha256 of the list of rollup's transactions
+- `ns_id: u32`: namespace ID of this rollup
+- `bmt_commitment: BlockMerkleCommitment`: root of the newest Espresso block commitment tree, contains information of all historical Espresso blocks
 - `vid_pp_hash: [u8; 32]`: Sha256 of `VidPublicParam` for the VID scheme
+- `blocks_info: Vec<(Range, u64)>`: specifies the origin Espresso block where each slice of the rollup transactions is from
 
 **Private Witness**
 
-- `ns_id: u32`: namespace ID
-- `all_tx: Vec<Vec<Transaction>>`: all txs between `blk_cm_root_old` and `blk_cm_root_new` grouped by each block
-    - `ns_txs: Vec<Vec<Transaction>>` is a subset range of the `all_tx` that corresponds to a specific namespace
-- `blk_headers: Vec<BlockHeader>`: a list of n `BlockHeader`
-- `blk_header_proofs: Vec<BlockMerkleTreeProof>`: a list of n MT proof proving membership of foregoing block headers in `blk_cm_root_new`
-- `ns_proofs: Vec<NsProof>`: a list of n `NsProof` for every `VidCommitment` and every group of txs `txs_in_blk_i`
-- `vid_pp: VidPublicParam`
-- `vid_common: VidCommon`: some auxiliary data broadcast to and used by each replica when verifying their chunks
+- `payload: Vec<u8>`: bytes representation of all rollup's collected transactions
+- `vid_param: VidParam`: public parameter for Espresso's VID scheme
+- `block_proofs: Vec<Range, BlockDerivationProof>`: a proof that each slice of the rollup's transactions is derived from an Espresso blocks. Each `BlockDerivationProof` contains the following:
+    - `block_header: BlockHeader`: block header of the origin Espresso block. Contains the block height, the namespace table `ns_table`, and a commitment `payload_commitment` to the Espresso block payload
+    - `bmt_proof: BlockMerkleTreeProof`: a proof that the given block is in the block Merkle tree committed by `bmt_commitment`
+    - `vid_common: VidCommon`: auxiliary information needed to verify the namespace proof
+    - `ns_proof: NsProof`: a namespace proof such that the given transactions slice is from the Espresso block payload committed in the `block_header` and specified by the namespace table entry `ns_id`
 
 **Relations**
-1. Namespace-specific tx filtering: `ns_txs` is the correct subset range of payload for `ns_id`
-    - `for i in 0..n`: 
-        - compute subset range: `range := blk_headers[i].ns_table.lookup(ns_id)`
-        - locate sub-slice of txs: `ns_txs[i]:= all_tx[i][range]`
-        - check consistency between `blk_headers[i].vid_cm` and `vid_common`
-        - verify the namespace proof: `payload_verify(vid_pp, vid_common, ns_txs[i], ns_proofs[i])`
-        - ensure legit block header: 
-            - compute block commitment: `blk_cm := COM.commit(blk_headers[i])`
-            - verify inclusion via membership proof: `MT.verify(blk_cm, blk_cm_root_new, blk_header_proofs[i])`
-2. Transaction batch commitment equivalence: same batch of txs used in VID and in VM proof
-    - compute the `ns_txs_hash := H(ns_txs[0] | ns_txs[1] | ... | ns_txs[n-1])` using whichever commitment/hashing scheme rollup VM prover chooses
-
+1. Ensure the commitment equivalence: `rollup_txs_commit == Sha256(payload)`
+2. Correct espresso derivation
+    - First the ranges in `blocks_info` and `block_proofs` should be non-overlapping and cover the whole payload
+    - For each `BlockDerivationProof`, we check
+        - the `block_header` is in the block Merkle tree, by checking the proof `bmt_proof` against the block Merkle tree commitment `bmt_commitment`
+        - Namespace ID `ns_id` of this rollup is containd in the namespace table `block_header.ns_table`, and given the specified range in the Espresso block and a namespace proof `NsProof`, checks whether the slice of rollup's transactions `payload` matches the specified slice in the Espresso block payload committed by `block_header.payload_commitment`
 
 Read [our doc](https://github.com/EspressoSystems/espresso-sequencer/blob/main/doc/zk-integration.md) for a more detailed description;
 read our blog on [Derivation Pipeline](https://hackmd.io/@EspressoSystems/the-derivation-pipeline) for rollup integration.
