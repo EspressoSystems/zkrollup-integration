@@ -4,9 +4,12 @@ name: Proof Generation
 on:
   workflow_dispatch:
 
+env:
+  SHELL: "/bin/bash"
+
 jobs:
   sp1-proof-gen:
-    runs-on: buildjet-4vcpu-ubuntu-2204
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -23,7 +26,15 @@ jobs:
         with:
           prefix-key: v2-rust
 
+      - uses: buildjet/cache@v3
+        with:
+          path: ~/.local/share/ark-srs
+          key: buildjet-ark-srs-${{ hashFiles('**/*.bin') }}
+          restore-keys: |
+            buildjet-ark-srs-
+
       - name: Install SP1 toolchain
+        shell: bash
         run: |
           curl -L https://sp1.succinct.xyz | bash
           ~/.sp1/bin/sp1up
