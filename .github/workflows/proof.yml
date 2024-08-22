@@ -34,6 +34,3 @@ jobs:
 
       - name: Generate and verify SP1 proof
         run: just sp1-prove
-
-      - name: Bench report number of instructions
-        run: just sp1-bench
