@@ -54,7 +54,7 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
 Each `BlockDerivationProof` contains the following:
     - `block_header: BlockHeader`: block header of the original Espresso block containing the block height, the namespace table `ns_table`, and a commitment `payload_commitment` to the entire Espresso block payload (which contains transactions from all rollups)
     - `bmt_proof: BlockMerkleTreeProof`: a proof that the given block is in the block Merkle tree committed by `bmt_commitment`
-    - `vid_common: VidCommon`: auxiliary information needed to verify the namespace proof
+    - `vid_common: VidCommon`: auxiliary information for the namespace proof `ns_proof` verification during which its consistency against `payload_commitment` is checked
     - `ns_proof: NsProof`: a namespace proof that proves some subslice of bytes (i.e. `payload[range]`) is the complete subset for the namespace `ns_id` from the overall Espresso block payload committed in `block_header`
 
 **Relations**
