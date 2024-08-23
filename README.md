@@ -58,7 +58,7 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
 
 **Relations**
 1. Ensure the commitment equivalence: `rollup_txs_commit == Sha256(payload)`
-2. Correct espresso derivation
+2. Correct derivations for the namespace/rollup from committed Espresso blocks
     - First the ranges in `blocks_info` and `block_proofs` should be non-overlapping and cover the whole payload
     - For each `BlockDerivationProof`, we check
         - the `block_header` is in the block Merkle tree, by checking the proof `bmt_proof` against the block Merkle tree commitment `bmt_commitment`
