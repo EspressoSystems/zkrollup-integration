@@ -36,7 +36,7 @@ Terminology wise:
 
 ## Circuit Spec
 
-Generally speaking, we are proving that a list of rollup's transactions are correctly derived Espresso blocks finalized by the consensus.
+Generally speaking, we are proving that a list of rollup's transactions are correctly derived from finalized Espresso blocks.
 
 **Public Inputs**
 - `rollup_txs_commit: [u8; 32]`: Sha256 of the list of rollup's transactions
