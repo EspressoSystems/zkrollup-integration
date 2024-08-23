@@ -166,7 +166,7 @@ fn mock_inputs(stdin: &mut SP1Stdin) -> RollupCommitment {
         vid_param,
         ns_id,
         bmt_commitment: block_merkle_tree.commitment(),
-        block_proofs,
+        block_derivation_proofs: block_proofs,
     };
 
     stdin.write(&rollup_payload);

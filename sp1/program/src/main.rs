@@ -33,18 +33,22 @@ pub fn main() {
 
 fn verify_espresso_derivation(payload: &[u8], proof: &EspressoDerivationProof) -> bool {
     let mut end = 0;
-    proof.block_proofs.iter().all(|(range, block_proof)| {
-        let result = range.start == end
-            && verify_block_derivation_proof(
-                &payload[range.start..range.end],
-                &proof.vid_param,
-                proof.ns_id,
-                &proof.bmt_commitment,
-                block_proof,
-            );
-        end = range.end;
-        result
-    }) && end == payload.len()
+    proof
+        .block_derivation_proofs
+        .iter()
+        .all(|(range, block_proof)| {
+            let result = range.start == end
+                && verify_block_derivation_proof(
+                    &payload[range.start..range.end],
+                    &proof.vid_param,
+                    proof.ns_id,
+                    &proof.bmt_commitment,
+                    block_proof,
+                );
+            end = range.end;
+            result
+        })
+        && end == payload.len()
 }
 
 fn verify_block_derivation_proof(

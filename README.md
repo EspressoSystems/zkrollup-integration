@@ -44,13 +44,12 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
 - `ns_id: u32`: namespace ID of this rollup
 - `bmt_commitment: BlockMerkleCommitment`: root of the newest Espresso block commitment tree, accumulated all historical Espresso block commitments
 - `vid_pp_hash: [u8; 32]`: Sha256 of `VidPublicParam` for the VID scheme
-- `blocks_info: Vec<(Range, u64)>`: specifies the origin Espresso block where each slice of the rollup transactions is from
 
 **Private Witness**
 
 - `payload: Vec<u8>`: the byte representation of all transactions specific to rollup with `ns_id` filtered from a batch of Espresso blocks
 - `vid_param: VidParam`: public parameter for Espresso's VID scheme
-- `derivation_proofs: Vec<Range, BlockDerivationProof>`: a list of `(range, proof)` pairs, one for each block, where `proof` proves that `payload[range]` is the complete subset of namespace-specific transactions filtered from the Espresso block. 
+- `block_derivation_proofs: Vec<Range, BlockDerivationProof>`: a list of `(range, proof)` pairs, one for each block, where `proof` proves that `payload[range]` is the complete subset of namespace-specific transactions filtered from the Espresso block. 
 Each `BlockDerivationProof` contains the following:
     - `block_header: BlockHeader`: block header of the original Espresso block containing the block height, the namespace table `ns_table`, and a commitment `payload_commitment` to the entire Espresso block payload (which contains transactions from all rollups)
     - `bmt_proof: BlockMerkleTreeProof`: a proof that the given block is in the block Merkle tree committed by `bmt_commitment`
@@ -61,7 +60,7 @@ Each `BlockDerivationProof` contains the following:
 1. Recompute the payload commitment using the "VM execution prover" way: `rollup_txs_commit == Sha256(payload)`
   - note: by marking this as a public input, the verifier can cross-check it with the public inputs from the "vm proof", thus ensuring the same batch of transactions is used in `payload` here and in the generation of the "vm proof"
 2. Correct derivations for the namespace/rollup from committed Espresso blocks
-    - First the ranges in `blocks_info` and `block_proofs` should be non-overlapping and cover the whole payload
+    - First the ranges in `block_derivation_proofs` should be non-overlapping and cover the whole payload, i.e. `range[i].end == range[i+1].start && range[i].start == 0 && range[-1].end == payload.len()`.
     - For each `BlockDerivationProof`, we check
         - the `block_header` is in the block Merkle tree, by checking the proof `bmt_proof` against the block Merkle tree commitment `bmt_commitment`
         - Namespace ID `ns_id` of this rollup is containd in the namespace table `block_header.ns_table`, and given the specified range in the Espresso block and a namespace proof `NsProof`, checks whether the slice of rollup's transactions `payload` matches the specified slice in the Espresso block payload committed by `block_header.payload_commitment`
