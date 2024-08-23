@@ -42,7 +42,7 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
 - `rollup_txs_commit: [u8; 32]`: commitment to the transactions designated to the rollup `ns_id`, also one of the public inputs from the VM execution proof
    - the concrete commitment scheme depends on the VM prover design, we use `Sha256(payload)` in the demo
 - `ns_id: u32`: namespace ID of this rollup
-- `bmt_commitment: BlockMerkleCommitment`: root of the newest Espresso block commitment tree, contains information of all historical Espresso blocks
+- `bmt_commitment: BlockMerkleCommitment`: root of the newest Espresso block commitment tree, accumulated all historical Espresso block commitments
 - `vid_pp_hash: [u8; 32]`: Sha256 of `VidPublicParam` for the VID scheme
 - `blocks_info: Vec<(Range, u64)>`: specifies the origin Espresso block where each slice of the rollup transactions is from
 
