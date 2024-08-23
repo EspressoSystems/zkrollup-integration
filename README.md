@@ -54,7 +54,7 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
     - `block_header: BlockHeader`: block header of the original Espresso block containing the block height, the namespace table `ns_table`, and a commitment `payload_commitment` to the entire Espresso block payload (which contains transactions from all rollups)
     - `bmt_proof: BlockMerkleTreeProof`: a proof that the given block is in the block Merkle tree committed by `bmt_commitment`
     - `vid_common: VidCommon`: auxiliary information needed to verify the namespace proof
-    - `ns_proof: NsProof`: a namespace proof such that the given transactions slice is from the Espresso block payload committed in the `block_header` and specified by the namespace table entry `ns_id`
+    - `ns_proof: NsProof`: a namespace proof that proves some subslice of bytes (i.e. `payload[range]`) is the complete subset for the namespace `ns_id` from the overall Espresso block payload committed in `block_header`
 
 **Relations**
 1. Recompute the payload commitment using the "VM execution prover" way: `rollup_txs_commit == Sha256(payload)`
