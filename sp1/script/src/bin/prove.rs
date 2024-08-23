@@ -5,26 +5,21 @@
 //! RUST_LOG=info cargo run --package espresso-derivation-prover --bin prove --release
 //! ```
 
-// TODO: this crate should take inputs of an espresso block, block header, and other
-// information from espresso light client or query service, extract public and private
-// inputs for derivation pipeline, and generate need proofs. (Incomplete) workflow:
-//  - Program input: espresso block, block header, etc.
-//  - Scan through the namespace table for the index of this rollup's namespace ID.
-//  - Feed these input to the program to generate a proof.
-
 use clap::Parser;
 use committable::Committable;
 use espresso_derivation_utils::{
     block::{
         header::{BlockHeader, BlockMerkleTree},
-        payload::{rollup_commit, vid_scheme, NsProof, Payload, VidParam},
+        payload::{rollup_commit, vid_scheme, NsProof, Payload, Vid, VidCommon, VidParam},
+        RollupCommitment,
     },
     ns_table::NsTable,
-    PublicInputs,
+    BlockDerivationProof, EspressoDerivationProof, PublicInputs,
 };
 use jf_merkle_tree::{AppendableMerkleTreeScheme, MerkleTreeScheme};
 use jf_pcs::prelude::UnivariateUniversalParams;
 use jf_vid::{payload_prover::PayloadProver, VidScheme};
+use rand::{Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::{HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey};
 use std::path::PathBuf;
@@ -46,41 +41,14 @@ struct ProveArgs {
     evm: bool,
 }
 
-#[allow(dead_code)]
-fn parse_bytes(arg: &str) -> Result<NsTable, std::num::ParseIntError> {
-    Ok(NsTable {
-        bytes: (0..arg.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(&arg[i..i + 2], 16))
-            .collect::<Result<Vec<_>, _>>()?,
-    })
-}
-
-fn mock_inputs(stdin: &mut SP1Stdin) {
-    let mut block_merkle_tree = BlockMerkleTree::new(32);
-    let num_storage_nodes = 10;
-
-    // Mocking namespace ID
-    let ns_id = 29u32;
-
-    // 11 bytes for current namespace
-    let ns_range = 0..11;
-
-    // Mocking input for a small payload
-    let payload = Payload(vec![1u8; 20]);
-    let ns_payload = Payload(vec![1u8; 11]);
-
-    let vid_param = load_srs();
-    let mut vid = vid_scheme(num_storage_nodes, &vid_param);
-
-    let vid_disperse = vid.disperse(&payload.0).unwrap();
-    let vid_common = vid_disperse.common;
-    let vid_commitment = vid_disperse.commit;
-
-    let ns_proof: NsProof = vid.payload_proof(payload.0, ns_range).unwrap();
-
+fn mock_block<R: RngCore>(
+    idx: u64,
+    ns_id: u32,
+    ns_payload: &[u8],
+    vid: &mut Vid,
+    rng: &mut R,
+) -> (BlockHeader, VidCommon, NsProof) {
     // This is a tweak from an actual block header in Espresso's staging testnet
-    // Namespace table is hardcoded.
     let mut header: BlockHeader = serde_json::from_str(
         r#"{
             "chain_config": {
@@ -120,23 +88,91 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
             }
          }"#,
     ).unwrap();
+
+    // Mock a height
+    header.height += idx;
+
+    // Mock payload
+    let payload_size = rng.gen_range(2 * ns_payload.len()..8 * ns_payload.len());
+    let mut payload = vec![0u8; payload_size];
+    rng.fill_bytes(&mut payload);
+    let offset = rng.gen_range(1..payload_size - ns_payload.len() - 1);
+    payload[offset..offset + ns_payload.len()].copy_from_slice(ns_payload);
+
+    // Mock VID information
+    let vid_disperse = vid.disperse(&payload).unwrap();
+    let vid_common = vid_disperse.common;
+    let vid_commitment = vid_disperse.commit;
+    // Update the payload commitment
     header.payload_commitment = vid_commitment;
+    // Update the namespace table
+    header.ns_table = NsTable::mock_ns_table(&[
+        (rng.next_u32(), offset as u32),
+        (ns_id, offset as u32 + ns_payload.len() as u32),
+        (rng.next_u32(), payload_size as u32),
+    ]);
 
-    block_merkle_tree.push(header.commit()).unwrap();
+    // Namespace proof
+    let ns_range = offset..offset + ns_payload.len();
+    let ns_proof = vid.payload_proof(&payload, ns_range).unwrap();
 
-    let (_, mt_proof) = block_merkle_tree.lookup(0).expect_ok().unwrap();
+    (header, vid_common, ns_proof)
+}
 
-    let rollup_txs_comm = rollup_commit(&ns_payload);
+fn mock_inputs(stdin: &mut SP1Stdin) -> RollupCommitment {
+    let mut rng = rand::thread_rng();
 
-    stdin.write(&block_merkle_tree.commitment());
-    stdin.write(&header);
-    stdin.write(&mt_proof);
-    stdin.write(&ns_id);
-    stdin.write(&ns_payload);
-    stdin.write(&vid_param);
-    stdin.write(&vid_common);
-    stdin.write(&ns_proof);
-    stdin.write(&rollup_txs_comm);
+    let ns_id = rng.next_u32();
+
+    let mut block_merkle_tree = BlockMerkleTree::new(32);
+
+    let num_blocks = rng.gen_range(2..5);
+
+    let mut rollup_payload = Payload(vec![]);
+
+    let num_storage_nodes = 10;
+    let vid_param = load_srs();
+    let mut vid = vid_scheme(num_storage_nodes, &vid_param);
+
+    let mut block_proofs = vec![];
+
+    for i in 0..num_blocks {
+        let ns_payload_len = rng.gen_range(5..10);
+        let mut block_ns_payload = vec![0u8; ns_payload_len];
+
+        let (header, vid_common, ns_proof) =
+            mock_block(i, ns_id, &block_ns_payload, &mut vid, &mut rng);
+
+        block_merkle_tree.push(header.commit()).unwrap();
+
+        let (_, bmt_proof) = block_merkle_tree.lookup(i).expect_ok().unwrap();
+
+        block_proofs.push((
+            rollup_payload.0.len()..rollup_payload.0.len() + ns_payload_len,
+            BlockDerivationProof {
+                bmt_proof,
+                block_header: header,
+                vid_common,
+                ns_proof,
+            },
+        ));
+        rollup_payload.0.append(&mut block_ns_payload);
+    }
+    for i in 0..num_blocks {
+        let (_, bmt_proof) = block_merkle_tree.lookup(i).expect_ok().unwrap();
+        block_proofs.get_mut(i as usize).unwrap().1.bmt_proof = bmt_proof;
+    }
+    let derivation_proof = EspressoDerivationProof {
+        vid_param,
+        ns_id,
+        bmt_commitment: block_merkle_tree.commitment(),
+        block_derivation_proofs: block_proofs,
+    };
+
+    stdin.write(&rollup_payload);
+    stdin.write(&derivation_proof);
+
+    rollup_commit(&rollup_payload)
 }
 
 fn main() {
@@ -154,7 +190,9 @@ fn main() {
 
     // Setup the inputs.;
     let mut stdin = SP1Stdin::new();
-    mock_inputs(&mut stdin);
+    let expect_rollup_commit = mock_inputs(&mut stdin);
+
+    std::println!("Expect rollup txs commitment: {}", expect_rollup_commit);
 
     if args.bench {
         // Execute the program
