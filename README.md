@@ -48,7 +48,7 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
 
 **Private Witness**
 
-- `payload: Vec<u8>`: bytes representation of all rollup's collected transactions
+- `payload: Vec<u8>`: the byte representation of all transactions specific to rollup with `ns_id` filtered from a batch of Espresso blocks
 - `vid_param: VidParam`: public parameter for Espresso's VID scheme
 - `block_proofs: Vec<Range, BlockDerivationProof>`: a proof that each slice of the rollup's transactions is derived from an Espresso blocks. Each `BlockDerivationProof` contains the following:
     - `block_header: BlockHeader`: block header of the origin Espresso block. Contains the block height, the namespace table `ns_table`, and a commitment `payload_commitment` to the Espresso block payload
