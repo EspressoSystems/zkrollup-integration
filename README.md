@@ -57,7 +57,8 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
     - `ns_proof: NsProof`: a namespace proof such that the given transactions slice is from the Espresso block payload committed in the `block_header` and specified by the namespace table entry `ns_id`
 
 **Relations**
-1. Ensure the commitment equivalence: `rollup_txs_commit == Sha256(payload)`
+1. Recompute the payload commitment using the "VM execution prover" way: `rollup_txs_commit == Sha256(payload)`
+  - note: by marking this as a public input, the verifier can cross-check it with the public inputs from the "vm proof", thus ensuring the same batch of transactions is used in `payload` here and in the generation of the "vm proof"
 2. Correct derivations for the namespace/rollup from committed Espresso blocks
     - First the ranges in `blocks_info` and `block_proofs` should be non-overlapping and cover the whole payload
     - For each `BlockDerivationProof`, we check
