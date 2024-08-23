@@ -39,7 +39,8 @@ Terminology wise:
 Generally speaking, we are proving that a list of rollup's transactions are correctly derived from finalized Espresso blocks.
 
 **Public Inputs**
-- `rollup_txs_commit: [u8; 32]`: Sha256 of the list of rollup's transactions
+- `rollup_txs_commit: [u8; 32]`: commitment to the transactions designated to the rollup `ns_id`, also one of the public inputs from the VM execution proof
+   - the concrete commitment scheme depends on the VM prover design, we use `Sha256(payload)` in the demo
 - `ns_id: u32`: namespace ID of this rollup
 - `bmt_commitment: BlockMerkleCommitment`: root of the newest Espresso block commitment tree, contains information of all historical Espresso blocks
 - `vid_pp_hash: [u8; 32]`: Sha256 of `VidPublicParam` for the VID scheme
