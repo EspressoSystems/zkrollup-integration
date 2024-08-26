@@ -56,7 +56,7 @@ pub fn main() {
             end = range.end;
         });
     assert_eq!(end, payload.0.len());
-    // Wrap all the public inputs along with the verification result
+    // Wrap all the public inputs
     let public_inputs = PublicInputs {
         rollup_txs_commit,
         vid_param_hash: compute_vid_param_hash(&vid_param),
