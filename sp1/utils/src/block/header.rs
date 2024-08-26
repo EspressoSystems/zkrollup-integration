@@ -86,8 +86,8 @@ impl Committable for BlockHeader {
     }
 
     fn tag() -> String {
-        // We use the tag "BLOCK" since blocks are identified by the hash of their header. This will
-        // thus be more intuitive to users than "HEADER".
+        // We use the tag "BLOCK" since blocks are identified by the hash of their
+        // header. This will thus be more intuitive to users than "HEADER".
         "BLOCK".into()
     }
 }
@@ -139,16 +139,18 @@ pub struct ChainConfig {
 
     /// Fee contract H160 on L1.
     ///
-    /// This is optional so that fees can easily be toggled on/off, with no need to deploy a
-    /// contract when they are off. In a future release, after fees are switched on and thoroughly
-    /// tested, this may be made mandatory.
+    /// This is optional so that fees can easily be toggled on/off, with no need
+    /// to deploy a contract when they are off. In a future release, after
+    /// fees are switched on and thoroughly tested, this may be made
+    /// mandatory.
     pub fee_contract: Option<H160>,
 
     /// Account that receives sequencing fees.
     ///
-    /// This account in the Espresso fee ledger will always receive every fee paid in Espresso,
-    /// regardless of whether or not their is a `fee_contract` deployed. Once deployed, the fee
-    /// contract can decide what to do with tokens locked in this account in Espresso.
+    /// This account in the Espresso fee ledger will always receive every fee
+    /// paid in Espresso, regardless of whether or not their is a
+    /// `fee_contract` deployed. Once deployed, the fee contract can decide
+    /// what to do with tokens locked in this account in Espresso.
     pub fee_recipient: H160,
 }
 

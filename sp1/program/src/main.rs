@@ -1,4 +1,5 @@
-//! This program proves that the executed transactions are correctly derived from espresso blocks.
+//! This program proves that the executed transactions are correctly derived
+//! from espresso blocks.
 
 #![no_main]
 sp1_zkvm::entrypoint!(main);
@@ -7,7 +8,7 @@ use committable::Committable;
 use espresso_derivation_utils::{
     block::{
         header::{BlockMerkleCommitment, BlockMerkleTree},
-        payload::{rollup_commit, vid_scheme, Payload, Vid, VidParam},
+        payload::{compute_vid_param_hash, rollup_commit, vid_scheme, Payload, Vid, VidParam},
     },
     BlockDerivationProof, EspressoDerivationProof, PublicInputs,
 };
@@ -18,39 +19,57 @@ use jf_vid::{
 };
 
 pub fn main() {
+    // `payload` is the list of all transactions in bytes form.
     let payload = sp1_zkvm::io::read::<Payload>();
+    // Espresso derivation proof contains the following:
+    // 1. (its hash is public) `vid_param`: VID public parameter for checking
+    //    namespace proof
+    // 2. (public) `ns_id`: namespace ID of this rollup
+    // 3. (public) `bmt_commitment`: the Espresso block Merkle tree commitment that
+    //    accumulates all block commitments up to the current `BlockHeight`.
+    // 4. (private) `block_derivation_proofs`: a pair of `(range, proof)` where the
+    //    `proof` asserts that a `range` of `payload` is derived from some block
+    //    committed in the block Merkle tree above.
     let espresso_derivation_proof = sp1_zkvm::io::read::<EspressoDerivationProof>();
     std::println!("All inputs are loaded");
 
-    let public_inputs = PublicInputs {
-        verification_result: verify_espresso_derivation(&payload.0, &espresso_derivation_proof),
-        rollup_txs_commit: rollup_commit(&payload),
-        espresso_derivation_commit: espresso_derivation_proof.into(),
-    };
+    // Compute the commitment of all the transactions
+    let rollup_txs_commit = rollup_commit(&payload);
 
-    sp1_zkvm::io::commit(&public_inputs);
-}
-
-fn verify_espresso_derivation(payload: &[u8], proof: &EspressoDerivationProof) -> bool {
+    // Verify the Espresso derivation proof
+    // 1. Check that the ranges cover the whole payload with no overlapping
+    // 2. Check each block derivation proof
     let mut end = 0;
-    proof
+    let verification_result = espresso_derivation_proof
         .block_derivation_proofs
         .iter()
         .all(|(range, block_proof)| {
             let result = range.start == end
                 && verify_block_derivation_proof(
-                    &payload[range.start..range.end],
-                    &proof.vid_param,
-                    proof.ns_id,
-                    &proof.bmt_commitment,
+                    &payload.0[range.start..range.end],
+                    &espresso_derivation_proof.vid_param,
+                    espresso_derivation_proof.ns_id,
+                    &espresso_derivation_proof.bmt_commitment,
                     block_proof,
                 );
             end = range.end;
             result
         })
-        && end == payload.len()
+        && end == payload.0.len();
+
+    // Wrap all the public inputs along with the verification result
+    let public_inputs = PublicInputs {
+        verification_result,
+        rollup_txs_commit,
+        vid_param_hash: compute_vid_param_hash(&espresso_derivation_proof.vid_param),
+        ns_id: espresso_derivation_proof.ns_id,
+        bmt_commitment: espresso_derivation_proof.bmt_commitment,
+    };
+
+    sp1_zkvm::io::commit(&public_inputs);
 }
 
+/// Verifies the block derivation proof against the public inputs
 fn verify_block_derivation_proof(
     payload_slice: &[u8],
     vid_param: &VidParam,
@@ -84,7 +103,7 @@ fn verify_block_derivation_proof(
         None => {
             std::println!("Namespace ID not found in the block.");
             false
-        }
+        },
         Some((ns_range_start, ns_range_end)) => {
             std::println!("Byte range: ({}, {})", ns_range_start, ns_range_end);
 
@@ -102,17 +121,12 @@ fn verify_block_derivation_proof(
                     &proof.ns_proof,
                 )
                 .is_ok_and(|result| result.is_ok())
-                || <Vid as VidScheme>::is_consistent(
-                    &proof.block_header.payload_commitment,
-                    &proof.vid_common,
-                )
-                .is_err()
             {
                 std::println!("Failed namespace proof.");
                 false
             } else {
                 true
             }
-        }
+        },
     }
 }

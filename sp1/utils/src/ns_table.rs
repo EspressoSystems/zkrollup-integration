@@ -42,8 +42,8 @@ impl NsTable {
 
     /// Read from namespace table given an index without range check.
     ///
-    /// Return a triple (id, start, end) which specifies the namespacd ID and its
-    /// range [start, end) in the payload.
+    /// Return a triple (id, start, end) which specifies the namespacd ID and
+    /// its range [start, end) in the payload.
     pub fn read_unchecked(&self, index: u32) -> (u32, u32, u32) {
         let pos = index as usize * (NS_ID_BYTE_LEN + NS_OFFSET_BYTE_LEN) + NUM_NSS_BYTE_LEN;
         let id = u32::from_le_bytes(self.bytes[pos..pos + NS_ID_BYTE_LEN].try_into().unwrap());
@@ -66,8 +66,8 @@ impl NsTable {
 
     /// Read from namespace table given a namespace ID.
     ///
-    /// Return None if given ID is not present, or a tuple (start, end) specifying
-    /// its bytes range [start, end) in the payload.
+    /// Return None if given ID is not present, or a tuple (start, end)
+    /// specifying its bytes range [start, end) in the payload.
     pub fn scan_for_id(&self, id: u32) -> Option<(u32, u32)> {
         let mut pos = NUM_NSS_BYTE_LEN;
         let mut last_offset = 0u32;
