@@ -17,7 +17,8 @@ use serde_with::{serde_as, DisplayFromStr};
 use std::io::Read;
 use tagged_base64::tagged;
 
-/// Types for block Merkle tree
+/// Types for block Merkle tree. This struct is essentially the same as
+/// `LightWeightSha3MerkleTree`, as the later one only keeps a frontier
 pub type BlockMerkleTree = SHA3MerkleTree<Commitment<BlockHeader>>;
 pub type BlockMerkleTreeProof = <BlockMerkleTree as MerkleTreeScheme>::MembershipProof;
 pub type BlockMerkleCommitment = <BlockMerkleTree as MerkleTreeScheme>::Commitment;

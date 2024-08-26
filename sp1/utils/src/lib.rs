@@ -5,12 +5,11 @@
 
 use block::{
     header::{BlockHeader, BlockMerkleCommitment, BlockMerkleTreeProof},
-    payload::{NsProof, VidCommon, VidParam},
+    payload::{NsProof, VidCommon},
     RollupCommitment,
 };
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
 
 pub mod block;
 pub mod ns_table;
@@ -18,7 +17,6 @@ pub mod ns_table;
 #[derive(Serialize, Deserialize, Debug)]
 /// Public inputs
 pub struct PublicInputs {
-    pub verification_result: bool,
     pub rollup_txs_commit: RollupCommitment,
     /// Hash of the used VID public parameter
     pub vid_param_hash: H256,
@@ -41,19 +39,4 @@ pub struct BlockDerivationProof {
     pub vid_common: VidCommon,
     /// Namespace proof of the given payload
     pub ns_proof: NsProof,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-/// Proves that the payload is derived from one or many espresso blocks.
-pub struct EspressoDerivationProof {
-    /// VID public parameter, used for namespace proof verification
-    pub vid_param: VidParam,
-    /// Namespace ID of the rollup
-    pub ns_id: u32,
-    /// Block Merkle tree commitment. Block MT contains information about all
-    /// historical blocks up to some block height.
-    pub bmt_commitment: BlockMerkleCommitment,
-    /// Block proofs for slices of payload.
-    /// Ranges should cover the whole payload and be non-overlapping.
-    pub block_derivation_proofs: Vec<(Range<usize>, BlockDerivationProof)>,
 }

@@ -15,7 +15,7 @@ use espresso_derivation_utils::{
         RollupCommitment,
     },
     ns_table::NsTable,
-    BlockDerivationProof, EspressoDerivationProof, PublicInputs,
+    BlockDerivationProof, PublicInputs,
 };
 use jf_merkle_tree::{AppendableMerkleTreeScheme, MerkleTreeScheme};
 use jf_pcs::prelude::UnivariateUniversalParams;
@@ -164,15 +164,12 @@ fn mock_inputs(stdin: &mut SP1Stdin) -> RollupCommitment {
         let (_, bmt_proof) = block_merkle_tree.lookup(i).expect_ok().unwrap();
         block_proofs.get_mut(i as usize).unwrap().1.bmt_proof = bmt_proof;
     }
-    let derivation_proof = EspressoDerivationProof {
-        vid_param,
-        ns_id,
-        bmt_commitment: block_merkle_tree.commitment(),
-        block_derivation_proofs: block_proofs,
-    };
 
     stdin.write(&rollup_payload);
-    stdin.write(&derivation_proof);
+    stdin.write(&vid_param);
+    stdin.write(&ns_id);
+    stdin.write(&block_merkle_tree.commitment());
+    stdin.write(&block_proofs);
 
     rollup_commit(&rollup_payload)
 }
