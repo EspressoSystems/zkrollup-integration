@@ -11,7 +11,7 @@ use committable::Committable;
 use espresso_derivation_utils::{
     block::{
         header::{BlockHeader, BlockMerkleTree},
-        payload::{vid_scheme, NsProof, Payload, Vid, VidCommon, VidParam},
+        payload::{vid_scheme, NsProof, Payload, Vid, VidCommitment, VidCommon, VidParam},
     },
     ns_table::NsTable,
     BlockDerivationProof, PublicInputs,
@@ -19,7 +19,7 @@ use espresso_derivation_utils::{
 use jf_merkle_tree::{AppendableMerkleTreeScheme, MerkleTreeScheme};
 use jf_pcs::prelude::UnivariateUniversalParams;
 use jf_vid::{payload_prover::PayloadProver, VidScheme};
-use rand::{Rng, RngCore};
+use rand::{Rng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use sp1_sdk::{HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey};
 use std::path::PathBuf;
@@ -111,8 +111,8 @@ fn mock_block<R: RngCore>(
 
     // Mock VID information
     let vid_disperse = vid.disperse(&payload).unwrap();
-    let vid_common = vid_disperse.common;
-    let vid_commitment = vid_disperse.commit;
+    let vid_common = VidCommon(vid_disperse.common);
+    let vid_commitment = VidCommitment(vid_disperse.commit);
     // Update the payload commitment
     header.payload_commitment = vid_commitment;
     // Update the namespace table
@@ -124,13 +124,13 @@ fn mock_block<R: RngCore>(
 
     // Namespace proof
     let ns_range = offset..offset + ns_payload.len();
-    let ns_proof = vid.payload_proof(&payload, ns_range).unwrap();
+    let ns_proof = NsProof(vid.payload_proof(&payload, ns_range).unwrap());
 
     (header, vid_common, ns_proof)
 }
 
 fn mock_inputs(stdin: &mut SP1Stdin) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rngs::StdRng::from_seed([0u8; 32]);
 
     let ns_id = rng.next_u32();
     let mut block_merkle_tree = BlockMerkleTree::new(32);

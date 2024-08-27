@@ -27,3 +27,4 @@ sha3 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sh
 
 [patch."https://github.com/EspressoSystems/jellyfish"]
 jf-pcs = { git = "https://www.github.com/EspressoSystems/jellyfish.git", branch = "sp1-patches" }
+jf-vid = { git = "https://www.github.com/EspressoSystems/jellyfish.git", branch = "sp1-patches" }

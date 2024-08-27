@@ -12,6 +12,7 @@ use jf_vid::{
 use primitive_types::H256;
 use serde::{de::Error as _, ser::Error as _, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tagged_base64::tagged;
 
 use super::RollupCommitment;
 
@@ -27,14 +28,56 @@ type H = Sha256;
 pub type Vid = Advz<E, H>;
 
 /// VID commitment type
-pub type VidCommitment = <Vid as VidScheme>::Commit;
+#[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[tagged("HASH")]
+pub struct VidCommitment(pub <Vid as VidScheme>::Commit);
+
+impl AsRef<<Vid as VidScheme>::Commit> for VidCommitment {
+    fn as_ref(&self) -> &<Vid as VidScheme>::Commit {
+        &self.0
+    }
+}
 
 /// Type of common data for VID scheme
-pub type VidCommon = <Vid as VidScheme>::Common;
+#[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize)]
+pub struct VidCommon(pub <Vid as VidScheme>::Common);
+
+impl AsRef<<Vid as VidScheme>::Common> for VidCommon {
+    fn as_ref(&self) -> &<Vid as VidScheme>::Common {
+        &self.0
+    }
+}
+
+impl Serialize for VidCommon {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut bytes = Vec::new();
+        self.0
+            .serialize_uncompressed(&mut bytes)
+            .map_err(|e| S::Error::custom(format!("{e:?}")))?;
+        Serialize::serialize(&bytes, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for VidCommon {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = <Vec<u8> as Deserialize>::deserialize(deserializer)?;
+        <<Vid as VidScheme>::Common as CanonicalDeserialize>::deserialize_uncompressed_unchecked(
+            &*bytes,
+        )
+        .map_err(|e| D::Error::custom(format!("{e:?}")))
+        .map(VidCommon)
+    }
+}
 
 /// Public parameters to setup the VID scheme
 /// Manual (de)serialization to avoid the expensive validity check.
-#[derive(Debug)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
 pub struct VidParam(pub UnivariateUniversalParams<E>);
 
 impl Serialize for VidParam {
@@ -64,8 +107,47 @@ impl<'de> Deserialize<'de> for VidParam {
     }
 }
 
+type F = <UnivariateKzgPCS<E> as PolynomialCommitmentScheme>::Evaluation;
 /// Namespace Proof type
-pub type NsProof = LargeRangeProof<<UnivariateKzgPCS<E> as PolynomialCommitmentScheme>::Evaluation>;
+#[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize)]
+pub struct NsProof(pub LargeRangeProof<F>);
+
+impl From<LargeRangeProof<F>> for NsProof {
+    fn from(proof: LargeRangeProof<F>) -> Self {
+        Self(proof)
+    }
+}
+
+impl AsRef<LargeRangeProof<F>> for NsProof {
+    fn as_ref(&self) -> &LargeRangeProof<F> {
+        &self.0
+    }
+}
+
+impl Serialize for NsProof {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut bytes = Vec::new();
+        self.0
+            .serialize_uncompressed(&mut bytes)
+            .map_err(|e| S::Error::custom(format!("{e:?}")))?;
+        Serialize::serialize(&bytes, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for NsProof {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = <Vec<u8> as Deserialize>::deserialize(deserializer)?;
+        <LargeRangeProof<F> as CanonicalDeserialize>::deserialize_uncompressed_unchecked(&*bytes)
+            .map_err(|e| D::Error::custom(format!("{e:?}")))
+            .map(NsProof)
+    }
+}
 
 /// Dummy rollup payload commit
 pub fn rollup_commit(payload: &Payload) -> RollupCommitment {

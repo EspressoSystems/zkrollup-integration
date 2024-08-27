@@ -76,7 +76,7 @@ impl Committable for BlockHeader {
             .u64_field("l1_head", self.l1_head)
             .optional("l1_finalized", &self.l1_finalized)
             .constant_str("payload_commitment")
-            .fixed_size_bytes(self.payload_commitment.as_ref().as_ref())
+            .fixed_size_bytes(self.payload_commitment.as_ref().as_ref().as_ref())
             .constant_str("builder_commitment")
             .fixed_size_bytes(&self.builder_commitment.0)
             .field("ns_table", self.ns_table.commit())

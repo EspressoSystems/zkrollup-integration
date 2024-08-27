@@ -2839,7 +2839,7 @@ dependencies = [
 [[package]]
 name = "jf-pcs"
 version = "0.1.0"
-source = "git+https://www.github.com/EspressoSystems/jellyfish.git?branch=sp1-patches#26f2875bd78137b4a5217c96913258c0ce35afb0"
+source = "git+https://www.github.com/EspressoSystems/jellyfish.git?branch=sp1-patches#c602296feb05f524b0c956e45c81f65892a768bc"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -2939,7 +2939,7 @@ dependencies = [
 [[package]]
 name = "jf-vid"
 version = "0.1.0"
-source = "git+https://github.com/EspressoSystems/jellyfish?tag=0.4.5#7d71dbeff14f1a501b0b0dc391f1dffa1b8374fb"
+source = "git+https://www.github.com/EspressoSystems/jellyfish.git?branch=sp1-patches#c602296feb05f524b0c956e45c81f65892a768bc"
 dependencies = [
  "anyhow",
  "ark-ec",

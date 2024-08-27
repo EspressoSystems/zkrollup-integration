@@ -106,17 +106,18 @@ fn verify_block_derivation_proof(
             std::println!("Byte range: ({}, {})", ns_range_start, ns_range_end);
 
             // Namespace proof w.r.t the VidCommitment
-            let num_storage_nodes = <Vid as VidScheme>::get_num_storage_nodes(&proof.vid_common);
+            let num_storage_nodes =
+                <Vid as VidScheme>::get_num_storage_nodes(proof.vid_common.as_ref());
             let vid = vid_scheme(num_storage_nodes, vid_param);
             if !vid
                 .payload_verify(
                     Statement {
                         payload_subslice: payload_slice,
                         range: (ns_range_start as usize..ns_range_end as usize),
-                        commit: &proof.block_header.payload_commitment,
-                        common: &proof.vid_common,
+                        commit: proof.block_header.payload_commitment.as_ref(),
+                        common: proof.vid_common.as_ref(),
                     },
-                    &proof.ns_proof,
+                    proof.ns_proof.as_ref(),
                 )
                 .is_ok_and(|result| result.is_ok())
             {
