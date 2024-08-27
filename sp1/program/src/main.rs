@@ -20,13 +20,14 @@ use jf_vid::{
 use std::ops::Range;
 
 pub fn main() {
-    // `payload` is the list of all transactions in bytes form.
+    // (private): `payload` is the list of all transactions in bytes form.
     let payload = sp1_zkvm::io::read::<Payload>();
-    // (its hash is public) VID public parameter for checking the namespace proofs
+    // (private): (its hash is public) VID public parameter for checking the
+    // namespace proofs
     let vid_param = sp1_zkvm::io::read::<VidParam>();
-    // (public) namespace ID of this rollup
+    // (public): namespace ID of this rollup
     let ns_id = sp1_zkvm::io::read::<u32>();
-    // (public) `bmt_commitment`: the Espresso block Merkle tree commitment that
+    // (public): `bmt_commitment`: the Espresso block Merkle tree commitment that
     // accumulates all block commitments up to the current `BlockHeight`.
     let bmt_commitment = sp1_zkvm::io::read::<BlockMerkleCommitment>();
     // (private): a pair of `(range, proof)` where the
@@ -56,6 +57,7 @@ pub fn main() {
             end = range.end;
         });
     assert_eq!(end, payload.0.len());
+
     // Wrap all the public inputs
     let public_inputs = PublicInputs {
         rollup_txs_commit,
@@ -64,6 +66,7 @@ pub fn main() {
         bmt_commitment,
     };
 
+    // Mark them as public inputs
     sp1_zkvm::io::commit(&public_inputs);
 }
 

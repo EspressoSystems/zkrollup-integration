@@ -63,7 +63,7 @@ Each `BlockDerivationProof` contains the following:
     - First the ranges in `block_derivation_proofs` should be non-overlapping and cover the whole payload, i.e. `range[i].end == range[i+1].start && range[i].start == 0 && range[-1].end == payload.len()`.
     - For each `BlockDerivationProof`, we check
         - the `block_header` is in the block Merkle tree, by checking the proof `bmt_proof` against the block Merkle tree commitment `bmt_commitment`
-        - Namespace ID `ns_id` of this rollup is containd in the namespace table `block_header.ns_table`, and given the specified range in the Espresso block and a namespace proof `NsProof`, checks whether the slice of rollup's transactions `payload` matches the specified slice in the Espresso block payload committed by `block_header.payload_commitment`
+        - Namespace ID `ns_id` of this rollup is contained in the namespace table `block_header.ns_table`, and given the specified range in the Espresso block and a namespace proof `NsProof`, checks whether the slice of rollup's transactions `payload` matches the specified slice in the Espresso block payload committed by `block_header.payload_commitment`
 
 Read [our doc](https://github.com/EspressoSystems/espresso-sequencer/blob/main/doc/zk-integration.md) for a more detailed description;
 read our blog on [Derivation Pipeline](https://hackmd.io/@EspressoSystems/the-derivation-pipeline) for rollup integration.
