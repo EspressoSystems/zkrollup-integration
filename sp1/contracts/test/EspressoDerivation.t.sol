@@ -7,8 +7,8 @@ import {EspressoDerivation} from "../src/EspressoDerivation.sol";
 import {SP1Verifier} from "@sp1-contracts/v1.1.0/SP1Verifier.sol";
 
 struct SP1ProofFixtureJson {
-    bytes publicValues;
     bytes proof;
+    bytes publicValues;
     bytes32 vkey;
 }
 

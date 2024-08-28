@@ -251,8 +251,8 @@ fn create_plonk_fixture(proof: &SP1ProofWithPublicValues, vk: &SP1VerifyingKey) 
     // Create the testing fixture so we can test things end-to-end.
     let fixture = ProofFixture {
         vkey: vk.bytes32().to_string(),
-        public_values: proof.public_values.raw(),
-        proof: proof.raw(),
+        public_values: format!("0x{}", hex::encode(proof.public_values.as_slice())),
+        proof: format!("0x{}", hex::encode(proof.bytes())),
     };
 
     // The verification key is used to verify that the proof corresponds to the
