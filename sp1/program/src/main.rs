@@ -20,8 +20,8 @@ use jf_vid::{
 use std::ops::Range;
 
 pub fn main() {
-    // (private): `payload` is the list of all transactions in bytes form.
-    let payload = sp1_zkvm::io::read::<Payload>();
+    // (private): `rollup_txs` is the list of all transactions in bytes form.
+    let rollup_txs = sp1_zkvm::io::read::<Payload>();
     // (private): (its hash is public) VID public parameter for checking the
     // namespace proofs
     let vid_param = sp1_zkvm::io::read::<VidParam>();
@@ -37,7 +37,7 @@ pub fn main() {
     std::println!("All inputs are loaded");
 
     // Compute the commitment of all the transactions
-    let rollup_txs_commit = rollup_commit(&payload);
+    let rollup_txs_commit = rollup_commit(&rollup_txs);
 
     // Verify the Espresso derivation proof
     // 1. Check that the ranges cover the whole payload with no overlapping
@@ -48,7 +48,7 @@ pub fn main() {
         .for_each(|(range, block_proof)| {
             assert_eq!(range.start, end);
             verify_block_derivation_proof(
-                &payload.0[range.start..range.end],
+                &rollup_txs.0[range.start..range.end],
                 &vid_param,
                 ns_id,
                 &bmt_commitment,
@@ -56,7 +56,7 @@ pub fn main() {
             );
             end = range.end;
         });
-    assert_eq!(end, payload.0.len());
+    assert_eq!(end, rollup_txs.0.len());
 
     // Wrap all the public inputs
     let public_inputs = PublicInputs {

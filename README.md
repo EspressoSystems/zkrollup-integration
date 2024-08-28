@@ -2,7 +2,7 @@
 
 Tools for zkRollups to integrate with Espresso.
 
-When a zk-rollup joins a shared finality gadget, it will receive streams of finalized blocks containing transactions from all participating rollups.
+When a zk-rollup integrates with a shared finality gadget, it will receive streams of finalized blocks containing transactions from all participating rollups.
 As part of (batched) state update on L1, provers for a zk-rollup periodically submit a validity proof attesting to the correctness of a new rollup state.
 A rollup state corresponds to a specific finalized block.
 Solely proving valid state transition on the rollup VM against a list of transactions from the block (a.k.a "VM proof") is insufficient.
@@ -40,30 +40,30 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
 
 **Public Inputs**
 - `rollup_txs_commit: [u8; 32]`: commitment to the transactions designated to the rollup `ns_id`, also one of the public inputs from the VM execution proof
-   - the concrete commitment scheme depends on the VM prover design, we use `Sha256(payload)` in the demo
+   - the concrete commitment scheme depends on the VM prover design, we use `Sha256(rollup_txs)` in the demo
 - `ns_id: u32`: namespace ID of this rollup
 - `bmt_commitment: BlockMerkleCommitment`: root of the newest Espresso block commitment tree, accumulated all historical Espresso block commitments
 - `vid_pp_hash: [u8; 32]`: Sha256 of `VidPublicParam` for the VID scheme
 
-**Private Witness**
+**Private Inputs**
 
-- `payload: Vec<u8>`: the byte representation of all transactions specific to rollup with `ns_id` filtered from a batch of Espresso blocks
+- `rollup_txs: Vec<u8>`: the byte representation of all transactions specific to rollup with `ns_id` filtered from a batch of Espresso blocks
 - `vid_param: VidParam`: public parameter for Espresso's VID scheme
-- `block_derivation_proofs: Vec<Range, BlockDerivationProof>`: a list of `(range, proof)` pairs, one for each block, where `proof` proves that `payload[range]` is the complete subset of namespace-specific transactions filtered from the Espresso block. 
+- `block_derivation_proofs: Vec<Range, BlockDerivationProof>`: a list of `(range, proof)` pairs, one for each block, where `proof` proves that `rollup_txs[range]` is the complete subset of namespace-specific transactions filtered from the Espresso block. 
 Each `BlockDerivationProof` contains the following:
     - `block_header: BlockHeader`: block header of the original Espresso block containing the block height, the namespace table `ns_table`, and a commitment `payload_commitment` to the entire Espresso block payload (which contains transactions from all rollups)
     - `bmt_proof: BlockMerkleTreeProof`: a proof that the given block is in the block Merkle tree committed by `bmt_commitment`
     - `vid_common: VidCommon`: auxiliary information for the namespace proof `ns_proof` verification during which its consistency against `payload_commitment` is checked
-    - `ns_proof: NsProof`: a namespace proof that proves some subslice of bytes (i.e. `payload[range]`) is the complete subset for the namespace `ns_id` from the overall Espresso block payload committed in `block_header`
+    - `ns_proof: NsProof`: a namespace proof that proves some subslice of bytes (i.e. `rollup_txs[range]`) is the complete subset for the namespace `ns_id` from the overall Espresso block payload committed in `block_header`
 
 **Relations**
-1. Recompute the payload commitment using the "VM execution prover" way: `rollup_txs_commit == Sha256(payload)`
-  - note: by marking this as a public input, the verifier can cross-check it with the public inputs from the "vm proof", thus ensuring the same batch of transactions is used in `payload` here and in the generation of the "vm proof"
+1. Recompute the payload commitment using the "VM execution prover" way: `rollup_txs_commit == Sha256(rollup_txs)`
+  - note: by marking this as a public input, the verifier can cross-check it with the public inputs from the "vm proof", thus ensuring the same batch of transactions is used in `rollup_txs` here and in the generation of the "vm proof"
 2. Correct derivations for the namespace/rollup from committed Espresso blocks
-    - First the ranges in `block_derivation_proofs` should be non-overlapping and cover the whole payload, i.e. `range[i].end == range[i+1].start && range[i].start == 0 && range[-1].end == payload.len()`.
+    - First the ranges in `block_derivation_proofs` should be non-overlapping and cover the whole payload, i.e. `range[i].end == range[i+1].start && range[i].start == 0 && range[-1].end == rollup_txs.len()`.
     - For each `BlockDerivationProof`, we check
         - the `block_header` is in the block Merkle tree, by checking the proof `bmt_proof` against the block Merkle tree commitment `bmt_commitment`
-        - Namespace ID `ns_id` of this rollup is contained in the namespace table `block_header.ns_table`, and given the specified range in the Espresso block and a namespace proof `NsProof`, checks whether the slice of rollup's transactions `payload` matches the specified slice in the Espresso block payload committed by `block_header.payload_commitment`
+        - Namespace ID `ns_id` of this rollup is contained in the namespace table `block_header.ns_table`, and given the specified range in the Espresso block and a namespace proof `NsProof`, checks whether the slice of rollup's transactions `rollup_txs` matches the specified slice in the Espresso block payload committed by `block_header.payload_commitment`
 
 Read [our doc](https://github.com/EspressoSystems/espresso-sequencer/blob/main/doc/zk-integration.md) for a more detailed description;
 read our blog on [Derivation Pipeline](https://hackmd.io/@EspressoSystems/the-derivation-pipeline) for rollup integration.
@@ -71,6 +71,12 @@ read our blog on [Derivation Pipeline](https://hackmd.io/@EspressoSystems/the-de
 ## Getting Started
 
 To enter the development shell: `nix develop`
+
+
+### Requirements
+
+- [Rust](https://rustup.rs/)
+- [SP1](https://succinctlabs.github.io/sp1/getting-started/install.html)
 
 ### SP1 stack
 
