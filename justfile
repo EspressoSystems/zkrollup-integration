@@ -25,4 +25,4 @@ default:
 # Test SP1 contracts
 @sp1-test-contracts:
     echo "Testing SP1 contracts"
-    cd sp1/contracts && forge test -v
+    cd sp1/contracts && forge test -vv

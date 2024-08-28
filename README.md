@@ -49,7 +49,7 @@ Generally speaking, we are proving that a list of rollup's transactions are corr
 
 - `rollup_txs: Vec<u8>`: the byte representation of all transactions specific to rollup with `ns_id` filtered from a batch of Espresso blocks
 - `vid_param: VidParam`: public parameter for Espresso's VID scheme
-- `block_derivation_proofs: Vec<Range, BlockDerivationProof>`: a list of `(range, proof)` pairs, one for each block, where `proof` proves that `rollup_txs[range]` is the complete subset of namespace-specific transactions filtered from the Espresso block. 
+- `block_derivation_proofs: Vec<(Range, BlockDerivationProof)>`: a list of `(range, proof)` pairs, one for each block, where `proof` proves that `rollup_txs[range]` is the complete subset of namespace-specific transactions filtered from the Espresso block. 
 Each `BlockDerivationProof` contains the following:
     - `block_header: BlockHeader`: block header of the original Espresso block containing the block height, the namespace table `ns_table`, and a commitment `payload_commitment` to the entire Espresso block payload (which contains transactions from all rollups)
     - `bmt_proof: BlockMerkleTreeProof`: a proof that the given block is in the block Merkle tree committed by `bmt_commitment`
