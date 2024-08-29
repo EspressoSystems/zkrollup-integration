@@ -3,23 +3,20 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {stdJson} from "forge-std/StdJson.sol";
-import {Fibonacci} from "../src/Fibonacci.sol";
-import {SP1Verifier} from "@sp1-contracts/v1.0.8-testnet/SP1Verifier.sol";
+import {EspressoDerivation} from "../src/EspressoDerivation.sol";
+import {SP1Verifier} from "@sp1-contracts/v1.1.0/SP1Verifier.sol";
 
 struct SP1ProofFixtureJson {
-    uint32 a;
-    uint32 b;
-    uint32 n;
     bytes proof;
     bytes publicValues;
     bytes32 vkey;
 }
 
-contract FibonacciTest is Test {
+contract EspressoDerivationTest is Test {
     using stdJson for string;
 
     address verifier;
-    Fibonacci public fibonacci;
+    EspressoDerivation public es;
 
     function loadFixture() public view returns (SP1ProofFixtureJson memory) {
         string memory root = vm.projectRoot();
@@ -33,24 +30,21 @@ contract FibonacciTest is Test {
         SP1ProofFixtureJson memory fixture = loadFixture();
 
         verifier = address(new SP1Verifier());
-        fibonacci = new Fibonacci(verifier, fixture.vkey);
+        es = new EspressoDerivation(verifier, fixture.vkey);
     }
 
-    function test_ValidFibonacciProof() public view {
+    function test_ValidDerivationProof() public view {
         SP1ProofFixtureJson memory fixture = loadFixture();
 
-        (uint32 n, uint32 a, uint32 b) = fibonacci.verifyFibonacciProof(fixture.proof, fixture.publicValues);
-        assert(n == fixture.n);
-        assert(a == fixture.a);
-        assert(b == fixture.b);
+        es.verifyDerivationProof(fixture.proof, fixture.publicValues);
     }
 
-    function testFail_InvalidFibonacciProof() public view {
+    function testFail_InvalidDerivationProof() public view {
         SP1ProofFixtureJson memory fixture = loadFixture();
 
         // Create a fake proof.
         bytes memory fakeProof = new bytes(fixture.proof.length);
 
-        fibonacci.verifyFibonacciProof(fakeProof, fixture.publicValues);
+        es.verifyDerivationProof(fakeProof, fixture.publicValues);
     }
 }

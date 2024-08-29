@@ -1,8 +1,11 @@
 [package]
 version = "0.1.0"
-name = "fibonacci-program"
+name = "espresso-derivation"
 edition = "2021"
 
 [dependencies]
-alloy-sol-types = "0.7.2"
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.8-testnet" }
+committable = { workspace = true }
+espresso-derivation-utils = { path = "../utils" }
+jf-merkle-tree = { workspace = true }
+jf-vid = { workspace = true }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.1.0" }

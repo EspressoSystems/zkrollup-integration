@@ -119,6 +119,7 @@
 
             # Rust
             nightlyRustToolchain
+            cargo-sort
           ] ++ lib.optionals stdenv.isDarwin
             [ darwin.apple_sdk.frameworks.SystemConfiguration ];
           shellHook = ''

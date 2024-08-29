@@ -4,3 +4,4 @@
 tmp/
 .pre-commit-config.yaml
 target/
+elf/
