@@ -1,0 +1,22 @@
+[package]
+version = "0.1.0"
+name = "sp1-test-program"
+edition = "2021"
+
+[dependencies]
+alloy-sol-types = "0.7.2"
+clap = { version = "4.0", features = ["derive", "env"] }
+hex = "0.4.3"
+sp1-derive = "1.2.0-rc2"
+sp1-sdk = { version = "1.2.0-rc2", optional = true }
+sp1-zkvm = "1.2.0-rc2"
+tracing = "0.1.40"
+
+[features]
+# NOTE: for unknown reasons, `sp1-sdk` will cause build error for SP1 programs
+prover-script = ["dep:sp1-sdk"]
+
+[[bin]]
+name = "prove"
+path = "src/bin/prove.rs"
+required-features = ["prover-script"]

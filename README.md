@@ -90,3 +90,122 @@ just sp1-prove
 # this will generate a proof for solidity, and creates fixture for contract verifier
 just sp1-prove --evm
 ```
+
+#### Playground
+
+To quickly and locally benchmark some logic, try edit the [test program](./sp1/test-program/src/main.rs), and get a cycle report:
+
+```
+$ just sp1-play
+```
+
+<details>
+<summary>Example Output</summary>
+
+```
+Rebuilding SP1 test program ...
+[sp1]      Finished release [optimized] target(s) in 0.34s
+... done
+Bench SP1 test program ...
+    Finished `release` profile [optimized] target(s) in 0.77s
+     Running `target/release/prove`
+n: 20
+2024-08-30T04:11:37.226431Z  INFO execute: clk = 0 pc = 0x2016d0    
+2024-08-30T04:11:37.226987Z  INFO execute: ┌╴dummy loop    
+2024-08-30T04:11:37.227029Z  INFO execute: │ ┌╴fib compute    
+2024-08-30T04:11:37.227052Z  INFO execute: │ │ ┌╴fibonacci    
+2024-08-30T04:11:37.227244Z  INFO execute: │ │ └╴484 cycles    
+2024-08-30T04:11:37.227315Z  INFO execute: │ └╴1,267 cycles    
+2024-08-30T04:11:37.227333Z  INFO execute: │ ┌╴fib compute    
+2024-08-30T04:11:37.227350Z  INFO execute: │ │ ┌╴fibonacci    
+2024-08-30T04:11:37.227370Z  INFO execute: │ │ └╴484 cycles    
+2024-08-30T04:11:37.227387Z  INFO execute: │ └╴1,267 cycles    
+2024-08-30T04:11:37.227432Z  INFO execute: └╴3,672 cycles    
+2024-08-30T04:11:37.228931Z  INFO execute: close time.busy=4.44ms time.idle=120µs
+Program executed successfully.
+n: 20
+a: 6765
+b: 10946
+cycle-tracker-start: fibonacci
+cycle-tracker-end: fibonacci
+Values are correct!
+Number of cycles: 6094
+... done
+
+=======================
+
+Tracing SP1 test program ...
+  [00:00:00] [########################################] 6094/6094 (0s)                                                                                                           
+Total instructions in trace: 6094
+
+
+ Instruction counts considering call graph
++--------------------------------------------------------------+-------------------+
+| Function Name                                                | Instruction Count |
+| __start                                                      | 6086              |
+| main                                                         | 5193              |
+| std::io::stdio::_print                                       | 3896              |
+| &std::io::stdio::Stdout::write_fmt                           | 3233              |
+| core::fmt::write                                             | 2218              |
+| sp1_test_program::fibonacci                                  | 1766              |
+| std::io::Write::write_fmt::Adapter::write_str                | 1728              |
+| std::io::buffered::linewritershim::LineWriterShim::write_all | 1308              |
+| sha2::sha256::compress256                                    | 824               |
+| sp1_zkvm::syscalls::halt::syscall_halt                       | 785               |
+| syscall_write                                                | 703               |
+| std::sync::remutex::ReentrantMutex::lock                     | 555               |
+| sp1_lib::io::commit_slice                                    | 519               |
+| memset                                                       | 507               |
+| core::slice::memchr::memrchr                                 | 338               |
+| memcpy                                                       | 338               |
+| std::sys::common::thread_local::os_local::Key::get           | 315               |
+| sys_write                                                    | 210               |
+| std::io::stdio::print_to_buffer_if_capture_used              | 210               |
+| sp1_zkvm::heap::SimpleAlloc::alloc                           | 122               |
+| __rust_alloc                                                 | 110               |
+| std::sync::once_lock::OnceLock::initialize                   | 88                |
+| sp1_lib::io::read_vec                                        | 71                |
+| std::sys::zkvm::once::Once::call                             | 68                |
+| syscall_sha256_extend                                        | 8                 |
+| syscall_sha256_compress                                      | 6                 |
+| syscall_hint_len                                             | 3                 |
+| syscall_hint_read                                            | 2                 |
++--------------------------------------------------------------+-------------------+
+
+
+ Instruction counts ignoring call graph
++--------------------------------------------------------------+-------------------+
+| Function Name                                                | Instruction Count |
+| sha2::sha256::compress256                                    | 552               |
+| std::io::buffered::linewritershim::LineWriterShim::write_all | 550               |
+| memset                                                       | 514               |
+| core::fmt::write                                             | 490               |
+| &std::io::stdio::Stdout::write_fmt                           | 450               |
+| std::io::Write::write_fmt::Adapter::write_str                | 420               |
+| std::io::stdio::_print                                       | 354               |
+| memcpy                                                       | 350               |
+| core::slice::memchr::memrchr                                 | 348               |
+| sp1_test_program::fibonacci                                  | 288               |
+| std::sys::common::thread_local::os_local::Key::get           | 269               |
+| syscall_write                                                | 256               |
+| std::sync::remutex::ReentrantMutex::lock                     | 240               |
+| std::io::stdio::print_to_buffer_if_capture_used              | 220               |
+| sp1_zkvm::syscalls::halt::syscall_halt                       | 219               |
+| main                                                         | 219               |
+| sp1_zkvm::heap::SimpleAlloc::alloc                           | 128               |
+| __start                                                      | 45                |
+| std::sys::zkvm::once::Once::call                             | 41                |
+| sp1_lib::io::read_vec                                        | 35                |
+| __rust_alloc                                                 | 28                |
+| std::sync::once_lock::OnceLock::initialize                   | 20                |
+| sys_write                                                    | 20                |
+| syscall_sha256_extend                                        | 10                |
+| syscall_sha256_compress                                      | 8                 |
+| anonymous                                                    | 7                 |
+| sp1_lib::io::commit_slice                                    | 6                 |
+| syscall_hint_len                                             | 4                 |
+| syscall_hint_read                                            | 3                 |
++--------------------------------------------------------------+-------------------+
+... done
+```
+</details>

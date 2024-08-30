@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["sp1/program", "sp1/script", "sp1/utils"]
+members = ["sp1/program", "sp1/script", "sp1/utils", "sp1/test-program"]
 
 [workspace.dependencies]
 ark-bn254 = "0.4"

@@ -26,3 +26,21 @@ default:
 @sp1-test-contracts:
     echo "Testing SP1 contracts"
     cd sp1/contracts && forge test -vv
+
+# Build SP1 playground under sp1/test-program
+@sp1-play-build:
+    echo "Rebuilding SP1 test program ..."
+    mkdir -p sp1/test-program/elf
+    cd sp1/test-program && cargo-prove prove build
+    mv elf/riscv32im-succinct-zkvm-elf sp1/test-program/elf/riscv32im-succinct-zkvm-elf && rm -rf elf/
+    echo "... done"
+
+# Bench or Generate proof for SP1 playground
+@sp1-play *args: sp1-play-build
+    echo "Bench SP1 test program ..."
+    RUST_LOG=info TRACE_FILE=sp1/test-program/trace.log cargo run -p sp1-test-program --release --bin prove --features prover-script -- {{args}}
+    echo "... done"
+    echo "\n=======================\n"
+    echo "Tracing SP1 test program ..."
+    cargo-prove prove trace --elf sp1/test-program/elf/riscv32im-succinct-zkvm-elf --trace sp1/test-program/trace.log
+    echo "... done"
