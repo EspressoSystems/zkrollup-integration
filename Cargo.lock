@@ -1647,6 +1647,7 @@ dependencies = [
  "espresso-derivation-utils",
  "jf-merkle-tree",
  "jf-vid",
+ "sp1-derive",
  "sp1-zkvm",
 ]
 
@@ -2840,7 +2841,7 @@ dependencies = [
 [[package]]
 name = "jf-pcs"
 version = "0.1.0"
-source = "git+https://www.github.com/EspressoSystems/jellyfish.git?branch=sp1-patches#dde2c69bf818685a7e3dee78f51c049d5e435c92"
+source = "git+https://www.github.com/EspressoSystems/jellyfish.git?branch=sp1-patches-playground#2d6584025f11d96b076924531ed9638e8f64032d"
 dependencies = [
  "ark-bn254",
  "ark-ec",
@@ -2940,7 +2941,7 @@ dependencies = [
 [[package]]
 name = "jf-vid"
 version = "0.1.0"
-source = "git+https://www.github.com/EspressoSystems/jellyfish.git?branch=sp1-patches#dde2c69bf818685a7e3dee78f51c049d5e435c92"
+source = "git+https://www.github.com/EspressoSystems/jellyfish.git?branch=sp1-patches-playground#2d6584025f11d96b076924531ed9638e8f64032d"
 dependencies = [
  "anyhow",
  "ark-ec",

@@ -30,12 +30,12 @@ use std::path::PathBuf;
 /// directory.
 pub const ELF: &[u8] = include_bytes!("../../../program/elf/riscv32im-succinct-zkvm-elf");
 /// low degree for demo only
-pub const SRS_DEGREE: usize = 8usize;
+pub const SRS_DEGREE: usize = 1024usize;
 /// payload bytes for each block shouldn't exceed max size
 /// during encoding, every 30 bytes is converted to a 254-bit field element
-pub const MAX_PAYLOAD_BYTES_PER_BLOCK: usize = SRS_DEGREE * 30;
+pub const MAX_PAYLOAD_BYTES_PER_BLOCK: usize = SRS_DEGREE * 31;
 /// number of storage node for VID
-pub const NUM_STORAGE_NODES: u32 = 10;
+pub const NUM_STORAGE_NODES: u32 = 100;
 /// produce derivation proof for a batch of espresso blocks
 pub const NUM_BLOCKS: u64 = 5;
 
@@ -143,6 +143,7 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
     for i in 0..NUM_BLOCKS {
         // pick a payload length for each block
         let ns_payload_len = rng.gen_range(1..MAX_PAYLOAD_BYTES_PER_BLOCK);
+        std::println!("Ns payload len for block {}: {}", i, ns_payload_len);
         // fill with random payload bytes of `ns_payload_len`
         let mut block_ns_payload = vec![0u8; ns_payload_len];
         rng.fill_bytes(&mut block_ns_payload);
@@ -179,6 +180,7 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
         block_proofs.get_mut(i as usize).unwrap().1.bmt_proof = bmt_proof;
     }
 
+    std::println!("Ns payload length: {}", rollup_payload.0.len());
     // push to inputs
     stdin.write(&rollup_payload);
     stdin.write(&vid_param);
