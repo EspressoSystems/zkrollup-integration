@@ -23,3 +23,6 @@ serde_json = { workspace = true }
 serde_with = "1.6"
 sha2 = { workspace = true }
 tagged-base64 = "0.4"
+
+[dev-dependencies]
+ark-srs = "0.3.1"

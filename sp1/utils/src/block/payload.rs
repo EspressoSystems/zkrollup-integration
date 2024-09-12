@@ -16,9 +16,6 @@ use tagged_base64::tagged;
 
 use super::RollupCommitment;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Payload(pub Vec<u8>);
-
 /// Private type alias for the EC pairing type parameter for [`Advz`].
 type E = Bn254;
 /// Private type alias for the hash type parameter for [`Advz`].
@@ -77,7 +74,7 @@ impl<'de> Deserialize<'de> for VidCommon {
 
 /// Public parameters to setup the VID scheme
 /// Manual (de)serialization to avoid the expensive validity check.
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Eq, PartialEq)]
 pub struct VidParam(pub UnivariateUniversalParams<E>);
 
 impl Serialize for VidParam {
@@ -85,10 +82,18 @@ impl Serialize for VidParam {
     where
         S: serde::Serializer,
     {
-        let mut bytes = Vec::new();
-        self.0
-            .serialize_uncompressed(&mut bytes)
-            .map_err(|e| S::Error::custom(format!("{e:?}")))?;
+        let powers_of_g_bytes = unsafe { self.0.powers_of_g.align_to::<u8>().1 };
+        let mut bytes = u64::to_le_bytes(powers_of_g_bytes.len() as u64).to_vec();
+        bytes.extend_from_slice(powers_of_g_bytes);
+        bytes.extend_from_slice(unsafe {
+            &std::mem::transmute::<ark_bn254::G2Affine, [u8; 136]>(self.0.h)
+        });
+        bytes.extend_from_slice(unsafe {
+            &std::mem::transmute::<ark_bn254::G2Affine, [u8; 136]>(self.0.beta_h)
+        });
+        let powers_of_h_bytes = unsafe { self.0.powers_of_h.align_to::<u8>().1 };
+        bytes.extend_from_slice(&u64::to_le_bytes(powers_of_h_bytes.len() as u64));
+        bytes.extend_from_slice(powers_of_h_bytes);
         Serialize::serialize(&bytes, serializer)
     }
 }
@@ -99,11 +104,41 @@ impl<'de> Deserialize<'de> for VidParam {
         D: serde::Deserializer<'de>,
     {
         let bytes = <Vec<u8> as Deserialize>::deserialize(deserializer)?;
-        <UnivariateUniversalParams<E> as CanonicalDeserialize>::deserialize_uncompressed_unchecked(
-            &*bytes,
-        )
-        .map_err(|e| D::Error::custom(format!("{e:?}")))
-        .map(VidParam)
+        let mut ptr = 8;
+        let powers_of_g_len = u64::from_le_bytes(bytes[0..8].try_into().unwrap()) as usize;
+        let powers_of_g = unsafe {
+            bytes[ptr..ptr + powers_of_g_len]
+                .align_to::<ark_bn254::G1Affine>()
+                .1
+        }
+        .to_vec();
+        ptr += powers_of_g_len;
+        let h = unsafe {
+            std::mem::transmute::<[u8; 136], ark_bn254::G2Affine>(
+                bytes[ptr..ptr + 136].try_into().unwrap(),
+            )
+        };
+        ptr += 136;
+        let beta_h = unsafe {
+            std::mem::transmute::<[u8; 136], ark_bn254::G2Affine>(
+                bytes[ptr..ptr + 136].try_into().unwrap(),
+            )
+        };
+        ptr += 136;
+        let powers_of_h_len = u64::from_le_bytes(bytes[ptr..ptr + 8].try_into().unwrap()) as usize;
+        ptr += 8;
+        let powers_of_h = unsafe {
+            bytes[ptr..ptr + powers_of_h_len]
+                .align_to::<ark_bn254::G2Affine>()
+                .1
+        }
+        .to_vec();
+        Ok(Self(UnivariateUniversalParams::<E> {
+            powers_of_g,
+            h,
+            beta_h,
+            powers_of_h,
+        }))
     }
 }
 
@@ -150,8 +185,8 @@ impl<'de> Deserialize<'de> for NsProof {
 }
 
 /// Dummy rollup payload commit
-pub fn rollup_commit(payload: &Payload) -> RollupCommitment {
-    let bytes: [u8; 32] = Sha256::digest(&payload.0).into();
+pub fn rollup_commit(payload: &[u8]) -> RollupCommitment {
+    let bytes: [u8; 32] = Sha256::digest(payload).into();
     bytes.into()
 }
 
@@ -171,4 +206,25 @@ pub fn vid_scheme(num_storage_nodes: u32, param: &VidParam) -> Vid {
         panic!("advz construction failure: (num_storage nodes,recovery_threshold)=({num_storage_nodes},{recovery_threshold}); \
                 error: {err}")
   })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::VidParam;
+    use jf_pcs::prelude::UnivariateUniversalParams;
+
+    #[test]
+    fn test_serialization_vid_param() {
+        let srs_degree = 8usize;
+        let srs = ark_srs::kzg10::aztec20::setup(srs_degree).expect("Aztec SRS failed to load");
+        let vid_param = VidParam(UnivariateUniversalParams {
+            powers_of_g: srs.powers_of_g,
+            h: srs.h,
+            beta_h: srs.beta_h,
+            powers_of_h: vec![srs.h, srs.beta_h],
+        });
+        let bytes = bincode::serialize(&vid_param).unwrap();
+        let vid_param_deser: VidParam = bincode::deserialize(&bytes).unwrap();
+        assert_eq!(vid_param, vid_param_deser);
+    }
 }

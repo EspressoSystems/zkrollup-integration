@@ -11,7 +11,7 @@ use committable::Committable;
 use espresso_derivation_utils::{
     block::{
         header::{BlockHeader, BlockMerkleTree},
-        payload::{vid_scheme, NsProof, Payload, Vid, VidCommitment, VidCommon, VidParam},
+        payload::{vid_scheme, NsProof, Vid, VidCommitment, VidCommon, VidParam},
     },
     ns_table::NsTable,
     BlockDerivationProof, PublicInputs,
@@ -134,7 +134,7 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
 
     let ns_id = rng.next_u32();
     let mut block_merkle_tree = BlockMerkleTree::new(32);
-    let mut rollup_payload = Payload(vec![]);
+    let mut rollup_payload = vec![];
     let mut block_proofs = vec![];
 
     let vid_param = load_srs();
@@ -160,7 +160,7 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
 
         // prepare the block derivation proof
         block_proofs.push((
-            rollup_payload.0.len()..rollup_payload.0.len() + ns_payload_len,
+            rollup_payload.len()..rollup_payload.len() + ns_payload_len,
             BlockDerivationProof {
                 bmt_proof,
                 block_header: header,
@@ -170,7 +170,7 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
         ));
         // append to overall rollup-specific payload
         // (as if filtered from a batch of blocks)
-        rollup_payload.0.append(&mut block_ns_payload);
+        rollup_payload.append(&mut block_ns_payload);
     }
 
     // update all the BMT inclusion proof since new block commitments where
@@ -180,13 +180,15 @@ fn mock_inputs(stdin: &mut SP1Stdin) {
         block_proofs.get_mut(i as usize).unwrap().1.bmt_proof = bmt_proof;
     }
 
-    std::println!("Ns payload length: {}", rollup_payload.0.len());
+    std::println!("Ns payload length: {}", rollup_payload.len());
     // push to inputs
-    stdin.write(&rollup_payload);
-    stdin.write(&vid_param);
+    stdin.write_slice(&rollup_payload);
+    let vid_param_bytes = bincode::serialize(&vid_param).unwrap();
+    stdin.write_slice(&vid_param_bytes);
     stdin.write(&ns_id);
     stdin.write(&block_merkle_tree.commitment());
-    stdin.write(&block_proofs);
+    let block_proofs_bytes = bincode::serialize(&block_proofs).unwrap();
+    stdin.write_slice(&block_proofs_bytes);
 }
 
 fn main() {

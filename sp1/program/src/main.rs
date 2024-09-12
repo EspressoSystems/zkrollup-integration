@@ -8,7 +8,7 @@ use committable::Committable;
 use espresso_derivation_utils::{
     block::{
         header::{BlockMerkleCommitment, BlockMerkleTree},
-        payload::{compute_vid_param_hash, rollup_commit, vid_scheme, Payload, Vid, VidParam},
+        payload::{compute_vid_param_hash, rollup_commit, vid_scheme, Vid, VidParam},
     },
     BlockDerivationProof, PublicInputs,
 };
@@ -23,12 +23,12 @@ pub fn main() {
     std::println!("cycle-tracker-start: input");
     std::println!("cycle-tracker-start: payload");
     // (private): `rollup_txs` is the list of all transactions in bytes form.
-    let rollup_txs = sp1_zkvm::io::read::<Payload>();
+    let rollup_txs = sp1_zkvm::io::read_vec();
     std::println!("cycle-tracker-end: payload");
     // (private): (its hash is public) VID public parameter for checking the
     // namespace proofs
     std::println!("cycle-tracker-start: vid_param");
-    let vid_param = sp1_zkvm::io::read::<VidParam>();
+    let vid_param_bytes = sp1_zkvm::io::read_vec();
     std::println!("cycle-tracker-end: vid_param");
     // (public): namespace ID of this rollup
     let ns_id = sp1_zkvm::io::read::<u32>();
@@ -39,8 +39,18 @@ pub fn main() {
     //    `proof` asserts that a `range` of `payload` is derived from some block
     //    committed in the block Merkle tree above.
     std::println!("cycle-tracker-start: block derivation proof input");
-    let block_derivation_proofs = sp1_zkvm::io::read::<Vec<(Range<usize>, BlockDerivationProof)>>();
+    let block_derivation_proofs_bytes = sp1_zkvm::io::read_vec();
     std::println!("cycle-tracker-end: block derivation proof input");
+
+    std::println!("cycle-tracker-start: deserialize");
+    std::println!("cycle-tracker-start: VidParam");
+    let vid_param: VidParam = bincode::deserialize(&vid_param_bytes).unwrap();
+    std::println!("cycle-tracker-end: VidParam");
+    std::println!("cycle-tracker-start: BlockDerivationProof");
+    let block_derivation_proofs: Vec<(Range<usize>, BlockDerivationProof)> =
+        bincode::deserialize(&block_derivation_proofs_bytes).unwrap();
+    std::println!("cycle-tracker-end: BlockDerivationProof");
+    std::println!("cycle-tracker-end: deserialize");
 
     std::println!("cycle-tracker-end: input");
 
@@ -59,7 +69,7 @@ pub fn main() {
         .for_each(|(range, block_proof)| {
             assert_eq!(range.start, end);
             verify_block_derivation_proof(
-                &rollup_txs.0[range.start..range.end],
+                &rollup_txs[range.start..range.end],
                 &vid_param,
                 ns_id,
                 &bmt_commitment,
@@ -67,7 +77,7 @@ pub fn main() {
             );
             end = range.end;
         });
-    assert_eq!(end, rollup_txs.0.len());
+    assert_eq!(end, rollup_txs.len());
     std::println!("cycle-tracker-end: derivation");
 
     std::println!("cycle-tracker-start: vid_param_hash");
