@@ -2,6 +2,7 @@
 version = "0.1.0"
 name = "espresso-derivation-prover"
 edition = "2021"
+license = "MIT"
 
 [[bin]]
 name = "sp1-prove"
