@@ -21,6 +21,6 @@ jf-vid = { workspace = true }
 primitive-types = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_with = "1.6"
+serde_with = "3.9"
 sha2 = { workspace = true }
 tagged-base64 = "0.4"
