@@ -108,10 +108,13 @@ impl<'de> Deserialize<'de> for VidParam {
         let powers_of_g_len = u64::from_le_bytes(bytes[0..8].try_into().unwrap()) as usize;
         let powers_of_g = unsafe {
             bytes[ptr..ptr + powers_of_g_len]
-                .align_to::<ark_bn254::G1Affine>()
-                .1
-        }
-        .to_vec();
+                .chunks(72)
+                .map(|slice| {
+                    let bytes: [u8; 72] = slice.try_into().unwrap();
+                    std::mem::transmute::<_, ark_bn254::G1Affine>(bytes)
+                })
+                .collect::<Vec<_>>()
+        };
         ptr += powers_of_g_len;
         let h = unsafe {
             std::mem::transmute::<[u8; 136], ark_bn254::G2Affine>(
@@ -129,10 +132,13 @@ impl<'de> Deserialize<'de> for VidParam {
         ptr += 8;
         let powers_of_h = unsafe {
             bytes[ptr..ptr + powers_of_h_len]
-                .align_to::<ark_bn254::G2Affine>()
-                .1
-        }
-        .to_vec();
+                .chunks(136)
+                .map(|slice| {
+                    let bytes: [u8; 136] = slice.try_into().unwrap();
+                    std::mem::transmute::<_, ark_bn254::G2Affine>(bytes)
+                })
+                .collect::<Vec<_>>()
+        };
         Ok(Self(UnivariateUniversalParams::<E> {
             powers_of_g,
             h,

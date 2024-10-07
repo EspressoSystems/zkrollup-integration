@@ -45,6 +45,7 @@ pub fn main() {
     std::println!("cycle-tracker-start: deserialize");
     std::println!("cycle-tracker-start: VidParam");
     let vid_param: VidParam = bincode::deserialize(&vid_param_bytes).unwrap();
+    std::println!("{}", vid_param.0.powers_of_h.len());
     std::println!("cycle-tracker-end: VidParam");
     std::println!("cycle-tracker-start: BlockDerivationProof");
     let block_derivation_proofs: Vec<(Range<usize>, BlockDerivationProof)> =
